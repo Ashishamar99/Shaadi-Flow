@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+@theme {
+  --color-blush-50: #FFF9F9;
+  --color-blush-100: #FFF0F0;
+  --color-blush-200: #FCDEDE;
+  --color-blush-300: #F4C2C2;
+  --color-blush-400: #E8A0A0;
+  --color-blush-500: #D47E7E;
+  --color-blush-600: #B85C5C;
+  --color-blush-700: #964545;
+  --color-blush-800: #6E3232;
+  --color-blush-900: #4A2222;
+
+  --color-mint-50: #F0FBF5;
+  --color-mint-100: #DDFAEB;
+  --color-mint-200: #B5EAD7;
+  --color-mint-300: #8DD9BF;
+  --color-mint-400: #65C7A7;
+  --color-mint-500: #45A88A;
+  --color-mint-600: #34876E;
+  --color-mint-700: #276653;
+  --color-mint-800: #1A4539;
+  --color-mint-900: #0F2920;
+
+  --color-warm-50: #FFFDF9;
+  --color-warm-100: #F9F3ED;
+  --color-warm-200: #EDE2D4;
+  --color-warm-300: #D4C0A8;
+  --color-warm-400: #B09A7C;
+  --color-warm-500: #8B7560;
+  --color-warm-600: #6B5A48;
+  --color-warm-700: #4A3728;
+  --color-warm-800: #362818;
+  --color-warm-900: #231A0F;
+
+  --font-heading: 'Quicksand', sans-serif;
+  --font-body: 'Quicksand', sans-serif;
+
+  --radius-pill: 99px;
+  --radius-card: 24px;
+  --radius-sm: 12px;
+
+  --shadow-soft: 0 4px 24px rgba(244, 194, 194, 0.15);
+  --shadow-card: 0 2px 16px rgba(244, 194, 194, 0.12);
+  --shadow-lifted: 0 8px 32px rgba(244, 194, 194, 0.2);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--color-warm-700);
+  background-color: var(--color-blush-50);
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+}
+
+.mapboxgl-map {
+  font-family: var(--font-body) !important;
+}
