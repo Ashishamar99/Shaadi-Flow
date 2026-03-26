@@ -4,10 +4,14 @@ import { Header } from './Header';
 import { useAuth } from '@/hooks/useAuth';
 import { useWedding } from '@/hooks/useWedding';
 import { CreateWeddingPage } from '@/pages/CreateWedding';
+import { ViewerPage } from '@/pages/ViewerPage';
+import { useState } from 'react';
 
 export function AppShell() {
   const { user } = useAuth();
-  const { wedding, loading, createWedding, joinWedding, updateWedding } = useWedding(user?.id);
+  const { wedding, loading, role, canEdit, createWedding, joinWedding, updateWedding } =
+    useWedding(user?.id, user);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   if (loading) {
     return (
@@ -24,13 +28,37 @@ export function AppShell() {
     return <CreateWeddingPage onCreate={createWedding} onJoin={joinWedding} />;
   }
 
+  if (role === 'viewer') {
+    return <ViewerPage wedding={wedding} />;
+  }
+
   return (
     <div className="flex h-screen bg-blush-50 overflow-hidden">
-      <Sidebar />
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/30 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      <div
+        className={`
+          fixed inset-y-0 left-0 z-50 lg:static lg:z-auto
+          transition-transform duration-300 ease-out
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}
+      >
+        <Sidebar onNavigate={() => setSidebarOpen(false)} />
+      </div>
+
       <div className="flex flex-col flex-1 min-w-0">
-        <Header weddingName={wedding.name} />
-        <main className="flex-1 overflow-y-auto p-6">
-          <Outlet context={{ wedding, user, updateWedding }} />
+        <Header
+          weddingName={wedding.name}
+          onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
+        />
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+          <Outlet context={{ wedding, user, updateWedding, role, canEdit }} />
         </main>
       </div>
     </div>

@@ -18,21 +18,27 @@ const navItems = [
   { to: '/timeline', icon: CalendarDays, label: 'Timeline' },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  onNavigate?: () => void;
+}
+
+export function Sidebar({ onNavigate }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
+
+  const handleNav = () => onNavigate?.();
 
   return (
     <aside
       className={`
-        bg-white border-r border-blush-100 flex flex-col
+        bg-white border-r border-blush-100 flex flex-col h-full
         transition-all duration-300 ease-out shrink-0
         ${collapsed ? 'w-[72px]' : 'w-[240px]'}
       `}
     >
       <button
-        onClick={() => navigate('/')}
-        className="flex items-center gap-3 px-5 py-6 border-b border-blush-100 cursor-pointer hover:bg-blush-50 transition-colors w-full text-left"
+        onClick={() => { navigate('/'); handleNav(); }}
+        className="flex items-center gap-3 px-5 py-5 md:py-6 border-b border-blush-100 cursor-pointer hover:bg-blush-50 transition-colors w-full text-left"
       >
         <div className="shrink-0 w-9 h-9 bg-blush-200 rounded-full flex items-center justify-center">
           <Heart size={18} className="text-blush-500" />
@@ -50,6 +56,7 @@ export function Sidebar() {
             key={to}
             to={to}
             end={to === '/'}
+            onClick={handleNav}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-sm text-sm font-semibold
               transition-all duration-200
@@ -68,9 +75,10 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="px-3 pb-4 border-t border-blush-100 pt-3">
+      <div className="px-3 pb-3 border-t border-blush-100 pt-3">
         <NavLink
           to="/team"
+          onClick={handleNav}
           className={({ isActive }) =>
             `flex items-center gap-3 px-3 py-2.5 rounded-sm text-sm font-semibold
             transition-all duration-200
@@ -90,7 +98,7 @@ export function Sidebar() {
 
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="p-3 mx-3 mb-4 rounded-sm text-warm-300 hover:bg-blush-50 hover:text-warm-500 transition-colors cursor-pointer flex items-center justify-center"
+        className="p-3 mx-3 mb-4 rounded-sm text-warm-300 hover:bg-blush-50 hover:text-warm-500 transition-colors cursor-pointer hidden lg:flex items-center justify-center"
       >
         {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
       </button>

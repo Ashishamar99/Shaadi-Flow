@@ -28,6 +28,7 @@ interface DisplayRow {
   familyId: string | null;
   headcount: number;
   memberCount: number;
+  allVisited: boolean;
 }
 
 export function InviteeTable({
@@ -77,12 +78,15 @@ export function InviteeTable({
         const extraCount = head.extra_members || 0;
         const headcount = namedCount + extraCount;
 
+        const allVisited = group.every((m) => m.visited);
+
         result.push({
           type: 'family-head',
           invitee: head,
           familyId: inv.family_id,
           headcount,
           memberCount: members.length + extraCount,
+          allVisited,
         });
 
         if (expandedFamilies.has(inv.family_id)) {
@@ -93,6 +97,7 @@ export function InviteeTable({
               familyId: inv.family_id,
               headcount: 1,
               memberCount: 0,
+              allVisited: member.visited,
             });
           }
         }
@@ -109,6 +114,7 @@ export function InviteeTable({
         familyId: null,
         headcount: 1,
         memberCount: 0,
+        allVisited: inv.visited,
       });
     }
 
@@ -181,7 +187,7 @@ export function InviteeTable({
                         onClick={() => onToggleVisited(inv)}
                         className="cursor-pointer text-warm-300 hover:text-mint-500 transition-colors"
                       >
-                        {inv.visited ? (
+                        {(isFamilyHead && !isExpanded ? row.allVisited : inv.visited) ? (
                           <CheckCircle size={20} className="text-mint-500" />
                         ) : (
                           <Circle size={20} />

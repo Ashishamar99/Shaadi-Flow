@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
+import { TagInput } from '@/components/ui/TagInput';
 import { parseMapsLink, parsePlaceName, reverseGeocode } from '@/lib/parse-maps-link';
 import type { Invitee } from '@/types';
 import { Loader2, MapPin, Plus, X, Users } from 'lucide-react';
@@ -64,6 +65,7 @@ export function InviteeForm({
     rsvp_status: 'not_invited',
     time_constraint: '',
   });
+  const [tagsArray, setTagsArray] = useState<string[]>([]);
   const [familyMembers, setFamilyMembers] = useState<string[]>([]);
   const [extraCount, setExtraCount] = useState(0);
   const [error, setError] = useState('');
@@ -75,13 +77,14 @@ export function InviteeForm({
   useEffect(() => {
     if (initialData) {
       setMode(initialData.family_id ? 'family' : 'single');
+      setTagsArray(initialData.tags ?? []);
       setForm({
         name: initialData.name,
         address: initialData.address ?? '',
         map_link: initialData.map_link ?? '',
         phone: initialData.phone ?? '',
         notes: initialData.notes ?? '',
-        tags: initialData.tags?.join(', ') ?? '',
+        tags: '',
         side: initialData.side ?? '',
         priority: initialData.priority,
         rsvp_status: initialData.rsvp_status,
@@ -102,6 +105,7 @@ export function InviteeForm({
         rsvp_status: 'not_invited',
         time_constraint: '',
       });
+      setTagsArray([]);
       setFamilyMembers([]);
       setExtraCount(0);
       setMode('single');
@@ -173,18 +177,13 @@ export function InviteeForm({
       return;
     }
 
-    const tags = form.tags
-      .split(',')
-      .map((t) => t.trim())
-      .filter(Boolean);
-
     const baseData: Partial<Invitee> = {
       name: form.name.trim(),
       address: form.address.trim() || null,
       map_link: form.map_link.trim() || null,
       phone: form.phone.trim() || null,
       notes: form.notes.trim() || null,
-      tags,
+      tags: tagsArray,
       side: (form.side || null) as Invitee['side'],
       priority: form.priority as Invitee['priority'],
       rsvp_status: form.rsvp_status as Invitee['rsvp_status'],
@@ -403,11 +402,10 @@ export function InviteeForm({
           />
         </div>
 
-        <Input
+        <TagInput
           label="Tags"
-          value={form.tags}
-          onChange={(e) => setForm({ ...form, tags: e.target.value })}
-          placeholder="family, friends, work (comma-separated)"
+          value={tagsArray}
+          onChange={setTagsArray}
         />
 
         <Textarea
