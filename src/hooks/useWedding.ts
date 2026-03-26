@@ -86,6 +86,55 @@ export function useWedding(userId: string | undefined) {
     return data as Wedding;
   };
 
+  const joinWedding = async (spaceId: string) => {
+    if (!userId) throw new Error('Not signed in');
+
+    // Verify the space exists
+    const { data: targetWedding, error: fetchErr } = await supabase
+      .from('weddings')
+      .select('*')
+      .eq('id', spaceId.trim())
+      .maybeSingle();
+
+    if (fetchErr || !targetWedding) {
+      throw new Error('Wedding space not found. Double-check the Space ID.');
+    }
+
+    // Check if already a member
+    const { data: existing } = await supabase
+      .from('wedding_members')
+      .select('id')
+      .eq('wedding_id', spaceId.trim())
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (existing) {
+      // Already a member -- just load the wedding
+      setWedding(targetWedding);
+      return targetWedding as Wedding;
+    }
+
+    // Also check if user is the owner
+    if (targetWedding.user_id === userId) {
+      setWedding(targetWedding);
+      return targetWedding as Wedding;
+    }
+
+    // Join as viewer by default
+    const { error: joinErr } = await supabase
+      .from('wedding_members')
+      .insert({
+        wedding_id: spaceId.trim(),
+        user_id: userId,
+        role: 'viewer',
+      });
+
+    if (joinErr) throw joinErr;
+
+    setWedding(targetWedding);
+    return targetWedding as Wedding;
+  };
+
   const updateWedding = async (updates: Partial<Wedding>) => {
     if (!wedding) return;
     const { data, error } = await supabase
@@ -97,5 +146,5 @@ export function useWedding(userId: string | undefined) {
     if (!error && data) setWedding(data);
   };
 
-  return { wedding, loading, createWedding, updateWedding, refetch: fetchWedding };
+  return { wedding, loading, createWedding, joinWedding, updateWedding, refetch: fetchWedding };
 }

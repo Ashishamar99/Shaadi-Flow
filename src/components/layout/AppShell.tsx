@@ -7,7 +7,7 @@ import { CreateWeddingPage } from '@/pages/CreateWedding';
 
 export function AppShell() {
   const { user } = useAuth();
-  const { wedding, loading, createWedding, updateWedding } = useWedding(user?.id);
+  const { wedding, loading, createWedding, joinWedding, updateWedding } = useWedding(user?.id);
 
   if (loading) {
     return (
@@ -21,7 +21,7 @@ export function AppShell() {
   }
 
   if (!wedding) {
-    return <CreateWeddingPage onCreate={createWedding} />;
+    return <CreateWeddingPage onCreate={createWedding} onJoin={joinWedding} />;
   }
 
   return (

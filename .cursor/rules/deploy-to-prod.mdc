@@ -1,0 +1,39 @@
+---
+description: Deploy Shaadi Flow to Vercel production when the user says "deploy to prod", "ship it", or "deploy"
+alwaysApply: true
+---
+
+# Deploy to Production
+
+When the user says any of these phrases:
+- "deploy to prod"
+- "deploy"
+- "ship it"
+- "push and deploy"
+
+Run the following steps **in order**:
+
+1. **Type-check** to catch errors before deploying:
+   ```bash
+   cd "/Users/aamar/Ashtroid Inc/shaadi-flow" && npx tsc --noEmit
+   ```
+   If this fails, stop and fix the errors first.
+
+2. **Commit** any uncommitted changes:
+   ```bash
+   cd "/Users/aamar/Ashtroid Inc/shaadi-flow" && git add -A && git commit -m "<descriptive message>"
+   ```
+   Skip if working tree is clean.
+
+3. **Push** to GitHub:
+   ```bash
+   cd "/Users/aamar/Ashtroid Inc/shaadi-flow" && git push
+   ```
+
+4. **Deploy** to Vercel production:
+   ```bash
+   cd "/Users/aamar/Ashtroid Inc/shaadi-flow" && vercel --prod
+   ```
+   This command needs `required_permissions: ["all"]`.
+
+5. **Report** the production URL back to the user.
