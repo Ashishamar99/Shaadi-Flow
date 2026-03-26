@@ -20,6 +20,7 @@ interface InviteeTableProps {
   onDelete: (id: string) => void;
   onDeleteFamily?: (familyId: string) => void;
   onToggleVisited: (invitee: Invitee) => void;
+  canDelete?: boolean;
 }
 
 interface DisplayRow {
@@ -37,6 +38,7 @@ export function InviteeTable({
   onDelete,
   onDeleteFamily,
   onToggleVisited,
+  canDelete = true,
 }: InviteeTableProps) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteFamilyId, setDeleteFamilyId] = useState<string | null>(null);
@@ -263,20 +265,22 @@ export function InviteeTable({
                       >
                         <Edit3 size={16} />
                       </button>
-                      {isFamilyHead && row.familyId ? (
-                        <button
-                          onClick={() => setDeleteFamilyId(row.familyId)}
-                          className="p-1.5 rounded-full hover:bg-red-50 text-warm-400 hover:text-red-500 transition-colors cursor-pointer"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => setDeleteId(inv.id)}
-                          className="p-1.5 rounded-full hover:bg-red-50 text-warm-400 hover:text-red-500 transition-colors cursor-pointer"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                      {canDelete && (
+                        isFamilyHead && row.familyId ? (
+                          <button
+                            onClick={() => setDeleteFamilyId(row.familyId)}
+                            className="p-1.5 rounded-full hover:bg-red-50 text-warm-400 hover:text-red-500 transition-colors cursor-pointer"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setDeleteId(inv.id)}
+                            className="p-1.5 rounded-full hover:bg-red-50 text-warm-400 hover:text-red-500 transition-colors cursor-pointer"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )
                       )}
                     </div>
                   </td>

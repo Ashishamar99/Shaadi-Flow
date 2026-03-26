@@ -44,11 +44,13 @@ function SortableEventBlock({
   onEdit,
   onDelete,
   hasConflict,
+  canDelete = true,
 }: {
   event: TimelineEvent;
   onEdit: () => void;
   onDelete: () => void;
   hasConflict: boolean;
+  canDelete?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: event.id });
@@ -121,12 +123,14 @@ function SortableEventBlock({
         >
           <Edit3 size={14} />
         </button>
-        <button
-          onClick={onDelete}
-          className="p-1.5 rounded-full hover:bg-red-50 text-warm-400 hover:text-red-500 transition-colors cursor-pointer"
-        >
-          <Trash2 size={14} />
-        </button>
+        {canDelete && (
+          <button
+            onClick={onDelete}
+            className="p-1.5 rounded-full hover:bg-red-50 text-warm-400 hover:text-red-500 transition-colors cursor-pointer"
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -254,7 +258,7 @@ function EventForm({
 }
 
 export function TimelineBuilderPage() {
-  const { wedding } = useOutletContext<{ wedding: Wedding | null; user: User | null }>();
+  const { wedding, canDelete } = useOutletContext<{ wedding: Wedding | null; user: User | null; canDelete: boolean }>();
   const { events, isLoading, addEvent, updateEvent, deleteEvent, reorderEvents } =
     useTimeline(wedding?.id);
 
@@ -487,6 +491,7 @@ export function TimelineBuilderPage() {
                       hasConflict={conflicts.has(event.id)}
                       onEdit={() => setEditingEvent(event)}
                       onDelete={() => setDeleteId(event.id)}
+                      canDelete={canDelete}
                     />
                   ))}
                 </div>

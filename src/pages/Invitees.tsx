@@ -25,9 +25,10 @@ import {
 } from 'lucide-react';
 
 export function InviteesPage() {
-  const { wedding } = useOutletContext<{
+  const { wedding, canDelete } = useOutletContext<{
     wedding: Wedding | null;
     user: User | null;
+    canDelete: boolean;
   }>();
   const {
     invitees,
@@ -324,6 +325,7 @@ export function InviteesPage() {
           onDelete={(id) => deleteInvitee.mutate(id)}
           onDeleteFamily={(fid) => deleteFamily.mutate(fid)}
           onToggleVisited={handleToggleVisited}
+          canDelete={canDelete}
         />
       )}
 

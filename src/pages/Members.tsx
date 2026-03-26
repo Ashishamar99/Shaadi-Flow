@@ -375,7 +375,12 @@ export function MembersPage() {
                     <p className="text-sm font-semibold text-warm-700">
                       {member.display_name || member.email || 'Team Member'}
                     </p>
-                    <p className="text-xs text-warm-400">
+                    {isAdmin && member.email && (
+                      <p className="text-xs text-warm-400 truncate">
+                        {member.email}
+                      </p>
+                    )}
+                    <p className="text-xs text-warm-300">
                       Added {new Date(member.created_at).toLocaleDateString()}
                     </p>
                   </div>

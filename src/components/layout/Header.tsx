@@ -1,15 +1,16 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { Avatar } from '@/components/ui/Avatar';
-import { LogOut, Menu, Moon, Sun } from 'lucide-react';
+import { LogOut, Menu, Moon, Sun, Eye } from 'lucide-react';
 import { useState } from 'react';
 
 interface HeaderProps {
   weddingName?: string;
   onMenuToggle?: () => void;
+  onPreviewAsViewer?: () => void;
 }
 
-export function Header({ weddingName, onMenuToggle }: HeaderProps) {
+export function Header({ weddingName, onMenuToggle, onPreviewAsViewer }: HeaderProps) {
   const { user, signOut } = useAuth();
   const { dark, toggle } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -33,7 +34,17 @@ export function Header({ weddingName, onMenuToggle }: HeaderProps) {
         )}
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 md:gap-2">
+        {onPreviewAsViewer && (
+          <button
+            onClick={onPreviewAsViewer}
+            className="p-2 rounded-full hover:bg-blush-50 text-warm-400 transition-colors cursor-pointer"
+            title="Preview as Viewer"
+          >
+            <Eye size={18} />
+          </button>
+        )}
+
         <button
           onClick={toggle}
           className="p-2 rounded-full hover:bg-blush-50 text-warm-400 transition-colors cursor-pointer"

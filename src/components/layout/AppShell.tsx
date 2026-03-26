@@ -12,6 +12,7 @@ export function AppShell() {
   const { wedding, loading, role, canEdit, createWedding, joinWedding, updateWedding } =
     useWedding(user?.id, user);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [previewMode, setPreviewMode] = useState(false);
 
   if (loading) {
     return (
@@ -32,9 +33,18 @@ export function AppShell() {
     return <ViewerPage wedding={wedding} />;
   }
 
+  if (previewMode) {
+    return (
+      <ViewerPage
+        wedding={wedding}
+        isPreview
+        onExitPreview={() => setPreviewMode(false)}
+      />
+    );
+  }
+
   return (
     <div className="flex h-screen bg-blush-50 overflow-hidden">
-      {/* Mobile overlay */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/30 z-40 lg:hidden"
@@ -56,9 +66,10 @@ export function AppShell() {
         <Header
           weddingName={wedding.name}
           onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
+          onPreviewAsViewer={() => setPreviewMode(true)}
         />
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
-          <Outlet context={{ wedding, user, updateWedding, role, canEdit }} />
+          <Outlet context={{ wedding, user, updateWedding, role, canEdit, canDelete: role === 'owner' || role === 'admin' }} />
         </main>
       </div>
     </div>

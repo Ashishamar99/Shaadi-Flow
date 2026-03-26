@@ -76,6 +76,12 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-body) !important;
 }
 
+@media (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
 /* ===== DARK MODE ===== */
 /* Only activates when html has .dark class (via toggle button) */
 
