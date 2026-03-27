@@ -14,7 +14,7 @@ const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || '';
 interface InviteeFormProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: Partial<Invitee>) => void;
+  onSubmit: (data: Partial<Invitee>, newMemberNames?: string[]) => void;
   onSubmitFamily?: (data: {
     head: Partial<Invitee>;
     memberNames: string[];
@@ -195,6 +195,8 @@ export function InviteeForm({
       baseData.extra_members = extraCount;
     }
 
+    const newMembers = familyMembers.filter((n) => n.trim());
+
     if (mode === 'family' && onSubmitFamily && !initialData) {
       onSubmitFamily({
         head: baseData,
@@ -202,7 +204,7 @@ export function InviteeForm({
         extraCount,
       });
     } else {
-      onSubmit(baseData);
+      onSubmit(baseData, isEditingFamilyHead ? newMembers : undefined);
     }
   };
 
@@ -261,22 +263,53 @@ export function InviteeForm({
         />
 
         {isEditingFamilyHead && (
-          <div className="p-4 bg-blush-50 rounded-card">
-            <div className="flex items-center gap-3">
+          <div className="p-4 bg-blush-50 rounded-card space-y-3">
+            <p className="text-sm font-semibold text-warm-600">Family Members</p>
+
+            {familyMembers.map((memberName, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <Input
+                  value={memberName}
+                  onChange={(e) => {
+                    const updated = [...familyMembers];
+                    updated[idx] = e.target.value;
+                    setFamilyMembers(updated);
+                  }}
+                  placeholder={`New member name`}
+                  className="flex-1"
+                />
+                <button
+                  type="button"
+                  onClick={() => setFamilyMembers(familyMembers.filter((_, i) => i !== idx))}
+                  className="p-2 rounded-full hover:bg-red-50 text-warm-400 hover:text-red-500 cursor-pointer"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ))}
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              icon={<Plus size={14} />}
+              onClick={() => setFamilyMembers([...familyMembers, ''])}
+            >
+              Add named member
+            </Button>
+
+            <div className="flex items-center gap-3 border-t border-blush-200 pt-3">
               <label className="text-xs font-semibold text-warm-500 whitespace-nowrap">
-                Additional unnamed members:
+                Unnamed additional:
               </label>
               <input
                 type="number"
                 min={0}
                 max={50}
-                value={extraCount}
+                value={extraCount || ''}
                 onChange={(e) => setExtraCount(Math.max(0, parseInt(e.target.value) || 0))}
                 className="w-20 rounded-pill border border-blush-200 bg-white px-3 py-1.5 text-sm text-warm-700 text-center focus:outline-none focus:ring-2 focus:ring-blush-300"
               />
-              <span className="text-xs text-warm-400">
-                Total: {1 + extraCount} people
-              </span>
             </div>
           </div>
         )}

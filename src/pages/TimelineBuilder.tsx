@@ -37,7 +37,22 @@ import {
   MapPin,
   UserCircle,
   AlertTriangle,
+  ExternalLink,
 } from 'lucide-react';
+
+function isUrl(str: string): boolean {
+  return /^https?:\/\//i.test(str) || str.includes('maps.google') || str.includes('goo.gl') || str.includes('maps.app');
+}
+
+function formatEventTime(timeStr: string): string {
+  const match = timeStr.match(/T(\d{2}):(\d{2})/);
+  if (!match) return timeStr;
+  const h = parseInt(match[1]);
+  const m = match[2];
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${h12.toString().padStart(2, '0')}:${m} ${ampm}`;
+}
 
 function SortableEventBlock({
   event,
@@ -60,14 +75,8 @@ function SortableEventBlock({
     transition,
   };
 
-  const startTime = new Date(event.start_time).toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-  const endTime = new Date(event.end_time).toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const startTime = formatEventTime(event.start_time);
+  const endTime = formatEventTime(event.end_time);
 
   return (
     <div
@@ -102,10 +111,24 @@ function SortableEventBlock({
             {startTime} - {endTime}
           </span>
           {event.location && (
-            <span className="flex items-center gap-1 truncate">
-              <MapPin size={12} />
-              {event.location}
-            </span>
+            isUrl(event.location) ? (
+              <a
+                href={event.location.startsWith('http') ? event.location : `https://${event.location}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-blush-500 hover:text-blush-600 truncate"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MapPin size={12} />
+                Location
+                <ExternalLink size={10} />
+              </a>
+            ) : (
+              <span className="flex items-center gap-1 truncate">
+                <MapPin size={12} />
+                {event.location}
+              </span>
+            )
           )}
           {event.owner && (
             <span className="flex items-center gap-1 truncate">
@@ -151,16 +174,18 @@ function EventForm({
   dayNumber: number;
   loading?: boolean;
 }) {
-  const [form, setForm] = useState({
-    title: initialData?.title ?? '',
-    start_time: initialData
-      ? new Date(initialData.start_time).toTimeString().slice(0, 5)
-      : '09:00',
-    end_time: initialData
-      ? new Date(initialData.end_time).toTimeString().slice(0, 5)
-      : '10:00',
-    location: initialData?.location ?? '',
-    owner: initialData?.owner ?? '',
+  const [form, setForm] = useState(() => {
+    const extractTime = (str: string) => {
+      const match = str.match(/T(\d{2}:\d{2})/);
+      return match ? match[1] : '09:00';
+    };
+    return {
+      title: initialData?.title ?? '',
+      start_time: initialData ? extractTime(initialData.start_time) : '09:00',
+      end_time: initialData ? extractTime(initialData.end_time) : '10:00',
+      location: initialData?.location ?? '',
+      owner: initialData?.owner ?? '',
+    };
   });
   const [error, setError] = useState('');
 
@@ -171,26 +196,29 @@ function EventForm({
       return;
     }
 
-    const baseDate = new Date(2025, 0, dayNumber);
     const [sh, sm] = form.start_time.split(':').map(Number);
     const [eh, em] = form.end_time.split(':').map(Number);
     const startSnapped = Math.round(sm / 15) * 15;
     const endSnapped = Math.round(em / 15) * 15;
 
-    const start = new Date(baseDate);
-    start.setHours(sh, startSnapped, 0, 0);
-    const end = new Date(baseDate);
-    end.setHours(eh, endSnapped, 0, 0);
+    const startMinutes = sh * 60 + startSnapped;
+    const endMinutes = eh * 60 + endSnapped;
 
-    if (end <= start) {
+    if (endMinutes <= startMinutes) {
       setError('End time must be after start time');
       return;
     }
 
+    // Store as fixed UTC strings -- the HH:MM is the intended display time
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    const dayPad = Math.abs(dayNumber).toString().padStart(2, '0');
+    const startStr = `2025-01-${dayPad}T${pad(sh)}:${pad(startSnapped)}:00+00:00`;
+    const endStr = `2025-01-${dayPad}T${pad(eh)}:${pad(endSnapped)}:00+00:00`;
+
     onSubmit({
       title: form.title.trim(),
-      start_time: start.toISOString(),
-      end_time: end.toISOString(),
+      start_time: startStr,
+      end_time: endStr,
       location: form.location.trim() || null,
       owner: form.owner.trim() || null,
       day_number: dayNumber,
@@ -263,6 +291,7 @@ export function TimelineBuilderPage() {
     useTimeline(wedding?.id);
 
   const [totalDays, setTotalDays] = useState(3);
+  const [preDays, setPreDays] = useState(0);
   const [showEventForm, setShowEventForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState<TimelineEvent | null>(null);
   const [activeDay, setActiveDay] = useState(1);
@@ -272,9 +301,16 @@ export function TimelineBuilderPage() {
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
 
+  const allDayNumbers = useMemo(() => {
+    const days: number[] = [];
+    for (let d = -preDays; d <= 0; d++) if (preDays > 0) days.push(d);
+    for (let d = 1; d <= totalDays; d++) days.push(d);
+    return days;
+  }, [totalDays, preDays]);
+
   const eventsByDay = useMemo(() => {
     const grouped: Record<number, TimelineEvent[]> = {};
-    for (let d = 1; d <= totalDays; d++) grouped[d] = [];
+    for (const d of allDayNumbers) grouped[d] = [];
     events.forEach((ev) => {
       const day = ev.day_number;
       if (!grouped[day]) grouped[day] = [];
@@ -287,7 +323,7 @@ export function TimelineBuilderPage() {
       });
     }
     return grouped;
-  }, [events, totalDays]);
+  }, [events, allDayNumbers]);
 
   const conflicts = useMemo(() => {
     const conflictIds = new Set<string>();
@@ -389,63 +425,84 @@ export function TimelineBuilderPage() {
       </div>
 
       <Card padding="sm">
-        <div className="flex items-center gap-4">
-          <label className="text-sm font-semibold text-warm-600">
-            Wedding Days:
-          </label>
-          <div className="flex gap-1">
-            {[1, 2, 3, 4, 5, 7].map((n) => (
-              <button
-                key={n}
-                onClick={() => {
-                  setTotalDays(n);
-                  if (activeDay > n) setActiveDay(n);
-                }}
-                className={`
-                  px-3 py-1.5 rounded-pill text-xs font-bold transition-all cursor-pointer
-                  ${
-                    totalDays === n
-                      ? 'bg-blush-300 text-warm-700'
-                      : 'bg-blush-50 text-warm-400 hover:bg-blush-100'
-                  }
-                `}
-              >
-                {n}
-              </button>
-            ))}
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-semibold text-warm-600">Days:</label>
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5, 7].map((n) => (
+                <button
+                  key={n}
+                  onClick={() => {
+                    setTotalDays(n);
+                    if (activeDay > n) setActiveDay(Math.min(activeDay, n));
+                  }}
+                  className={`
+                    px-3 py-1.5 rounded-pill text-xs font-bold transition-all cursor-pointer
+                    ${totalDays === n ? 'bg-blush-300 text-warm-700' : 'bg-blush-50 text-warm-400 hover:bg-blush-100'}
+                  `}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-semibold text-warm-600">Pre-days:</label>
+            <div className="flex gap-1">
+              {[0, 1, 2, 3].map((n) => (
+                <button
+                  key={n}
+                  onClick={() => setPreDays(n)}
+                  className={`
+                    px-3 py-1.5 rounded-pill text-xs font-bold transition-all cursor-pointer
+                    ${preDays === n ? 'bg-mint-200 text-warm-700' : 'bg-blush-50 text-warm-400 hover:bg-blush-100'}
+                  `}
+                >
+                  {n === 0 ? 'None' : `-${n}`}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </Card>
 
       <div className="flex gap-2 flex-wrap">
-        {Array.from({ length: totalDays }, (_, i) => i + 1).map((day) => (
-          <button
-            key={day}
-            onClick={() => setActiveDay(day)}
-            className={`
-              px-5 py-2.5 rounded-pill text-sm font-bold transition-all cursor-pointer
-              ${
-                activeDay === day
-                  ? 'bg-white text-warm-700 shadow-card'
-                  : 'bg-blush-50 text-warm-400 hover:bg-blush-100'
-              }
-            `}
-          >
-            Day {day}
-            {(eventsByDay[day]?.length ?? 0) > 0 && (
-              <Badge variant="blush" className="ml-2">
-                {eventsByDay[day].length}
-              </Badge>
-            )}
-          </button>
-        ))}
+        {allDayNumbers.map((day) => {
+          const label = day <= 0 ? `Day ${day}` : `Day ${day}`;
+          const count = eventsByDay[day]?.length ?? 0;
+          return (
+            <button
+              key={day}
+              onClick={() => setActiveDay(day)}
+              className={`
+                px-4 py-2 rounded-pill text-sm font-bold transition-all cursor-pointer
+                ${
+                  activeDay === day
+                    ? day <= 0
+                      ? 'bg-white text-mint-600 shadow-card ring-1 ring-mint-200'
+                      : 'bg-white text-warm-700 shadow-card'
+                    : day <= 0
+                      ? 'bg-mint-50 text-mint-400 hover:bg-mint-100'
+                      : 'bg-blush-50 text-warm-400 hover:bg-blush-100'
+                }
+              `}
+            >
+              {label}
+              {count > 0 && (
+                <Badge variant={day <= 0 ? 'mint' : 'blush'} className="ml-2">
+                  {count}
+                </Badge>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       <div id="timeline-grid">
         <Card>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold text-warm-700">
-              Day {activeDay} Schedule
+              {activeDay <= 0 ? `Day ${activeDay} (Pre-Event)` : `Day ${activeDay}`} Schedule
             </h2>
             <Button
               size="sm"

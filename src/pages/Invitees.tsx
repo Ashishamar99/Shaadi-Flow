@@ -135,11 +135,36 @@ export function InviteesPage() {
     addFamily.mutate(data, { onSuccess: () => setShowForm(false) });
   };
 
-  const handleEditGuest = (data: Partial<Invitee>) => {
+  const handleEditGuest = (data: Partial<Invitee>, newMemberNames?: string[]) => {
     if (!editingInvitee) return;
     updateInvitee.mutate(
       { id: editingInvitee.id, ...data },
-      { onSuccess: () => setEditingInvitee(null) },
+      {
+        onSuccess: () => {
+          if (newMemberNames && newMemberNames.length > 0 && editingInvitee.family_id) {
+            const newRows = newMemberNames.map((name) => ({
+              name: name.trim(),
+              wedding_id: wedding?.id,
+              family_id: editingInvitee.family_id,
+              is_family_head: false,
+              extra_members: 0,
+              address: data.address || editingInvitee.address,
+              map_link: data.map_link || editingInvitee.map_link,
+              lat: editingInvitee.lat,
+              lng: editingInvitee.lng,
+              side: data.side || editingInvitee.side,
+              priority: data.priority || editingInvitee.priority,
+              rsvp_status: data.rsvp_status || editingInvitee.rsvp_status,
+              tags: data.tags || editingInvitee.tags,
+              visited: false,
+              created_by: user?.id,
+              created_by_name: displayName,
+            }));
+            bulkInsert.mutate(newRows as Partial<Invitee>[]);
+          }
+          setEditingInvitee(null);
+        },
+      },
     );
   };
 

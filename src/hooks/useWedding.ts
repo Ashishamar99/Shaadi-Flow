@@ -20,9 +20,10 @@ export function useWedding(userId: string | undefined, user?: User | null) {
 
   const fetchWedding = useCallback(async () => {
     if (!userId) {
-      setLoading(false);
       return;
     }
+
+    setLoading(true);
 
     const { data: owned } = await supabase
       .from('weddings')

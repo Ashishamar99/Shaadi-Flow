@@ -5,12 +5,44 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { supabase } from '@/lib/supabase';
 import type { Wedding, TimelineEvent } from '@/types';
-import { CalendarDays, MapPin, UserCircle, Heart, Moon, Sun, LogOut, X, UserPlus, Check } from 'lucide-react';
+import { CalendarDays, MapPin, UserCircle, Heart, Moon, Sun, LogOut, X, UserPlus, Check, Share2, Download } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
 
 const REACTION_EMOJIS = ['❤️', '🎉', '🥳', '💃', '🙌', '😍'];
+
+function formatEventTime(timeStr: string): string {
+  const match = timeStr.match(/T(\d{2}):(\d{2})/);
+  if (!match) return timeStr;
+  const h = parseInt(match[1]);
+  const m = match[2];
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${h12.toString().padStart(2, '0')}:${m} ${ampm}`;
+}
+
+async function shareScheduleAsImage(weddingName: string) {
+  const el = document.getElementById('viewer-schedule');
+  if (!el) return;
+
+  const { toPng } = await import('html-to-image');
+  const dataUrl = await toPng(el, { quality: 0.95, backgroundColor: '#FFF9F9' });
+  const blob = await (await fetch(dataUrl)).blob();
+  const file = new File([blob], `${weddingName}-schedule.png`, { type: 'image/png' });
+
+  if (navigator.share && navigator.canShare?.({ files: [file] })) {
+    await navigator.share({
+      title: `${weddingName} - Schedule`,
+      files: [file],
+    });
+  } else {
+    const link = document.createElement('a');
+    link.download = `${weddingName}-schedule.png`;
+    link.href = dataUrl;
+    link.click();
+  }
+}
 
 function seededRandom(seed: number) {
   let s = seed;
@@ -315,8 +347,14 @@ function ViewerRsvpForm({ weddingId, isPreview }: { weddingId: string; isPreview
                 type="number"
                 min={1}
                 max={20}
-                value={totalPeople}
-                onChange={(e) => setTotalPeople(Math.max(1, parseInt(e.target.value) || 1))}
+                value={totalPeople || ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '') { setTotalPeople(0); return; }
+                  const num = parseInt(val);
+                  if (!isNaN(num)) setTotalPeople(Math.min(20, Math.max(0, num)));
+                }}
+                onBlur={() => { if (totalPeople < 1) setTotalPeople(1); }}
                 className="w-20 rounded-pill border border-blush-200 bg-white px-3 py-1.5 text-sm text-warm-700 text-center focus:outline-none focus:ring-2 focus:ring-blush-300"
               />
             </div>
@@ -454,11 +492,23 @@ export function ViewerPage({ wedding, isPreview, onExitPreview }: ViewerPageProp
           </div>
         </div>
 
-        <div>
-          <h2 className="text-xl font-bold text-warm-700 mb-4 flex items-center gap-2">
-            <CalendarDays size={22} />
-            Schedule
-          </h2>
+        <div id="viewer-schedule">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-warm-700 flex items-center gap-2">
+              <CalendarDays size={22} />
+              Schedule
+            </h2>
+            {events.length > 0 && (
+              <Button
+                size="sm"
+                variant="ghost"
+                icon={'share' in navigator ? <Share2 size={14} /> : <Download size={14} />}
+                onClick={() => shareScheduleAsImage(wedding.name)}
+              >
+                {'share' in navigator ? 'Share' : 'Save Image'}
+              </Button>
+            )}
+          </div>
 
           {events.length === 0 ? (
             <Card>
@@ -480,16 +530,10 @@ export function ViewerPage({ wedding, isPreview, onExitPreview }: ViewerPageProp
                           <div className="flex items-start gap-3">
                             <div className="w-16 shrink-0 text-center">
                               <p className="text-sm font-bold text-blush-500">
-                                {new Date(ev.start_time).toLocaleTimeString([], {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
+                                {formatEventTime(ev.start_time)}
                               </p>
                               <p className="text-[10px] text-warm-300">
-                                {new Date(ev.end_time).toLocaleTimeString([], {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
+                                {formatEventTime(ev.end_time)}
                               </p>
                             </div>
                             <div className="flex-1 min-w-0">

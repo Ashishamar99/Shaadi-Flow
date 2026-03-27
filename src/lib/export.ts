@@ -30,12 +30,22 @@ export function inviteesToExportData(invitees: Invitee[]): Record<string, unknow
   }));
 }
 
+function formatEventTime(timeStr: string): string {
+  const match = timeStr.match(/T(\d{2}):(\d{2})/);
+  if (!match) return timeStr;
+  const h = parseInt(match[1]);
+  const m = match[2];
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${h12.toString().padStart(2, '0')}:${m} ${ampm}`;
+}
+
 export function eventsToExportData(events: TimelineEvent[]): Record<string, unknown>[] {
   return events.map((ev) => ({
     'Day': ev.day_number,
     'Title': ev.title,
-    'Start Time': new Date(ev.start_time).toLocaleTimeString(),
-    'End Time': new Date(ev.end_time).toLocaleTimeString(),
+    'Start Time': formatEventTime(ev.start_time),
+    'End Time': formatEventTime(ev.end_time),
     'Location': ev.location ?? '',
     'Owner': ev.owner ?? '',
   }));

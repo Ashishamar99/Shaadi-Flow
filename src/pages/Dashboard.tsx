@@ -15,6 +15,16 @@ import {
   Pencil,
 } from 'lucide-react';
 
+function formatEventTime(timeStr: string): string {
+  const match = timeStr.match(/T(\d{2}):(\d{2})/);
+  if (!match) return timeStr;
+  const h = parseInt(match[1]);
+  const m = match[2];
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${h12.toString().padStart(2, '0')}:${m} ${ampm}`;
+}
+
 interface DashboardContext {
   wedding: Wedding | null;
   user: User | null;
@@ -262,15 +272,7 @@ export function DashboardPage() {
                       {ev.title}
                     </p>
                     <p className="text-xs text-warm-400">
-                      {new Date(ev.start_time).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}{' '}
-                      -{' '}
-                      {new Date(ev.end_time).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+                      {formatEventTime(ev.start_time)} - {formatEventTime(ev.end_time)}
                     </p>
                   </div>
                 </div>
