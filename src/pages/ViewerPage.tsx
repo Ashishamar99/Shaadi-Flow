@@ -5,7 +5,10 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { supabase } from '@/lib/supabase';
 import type { Wedding, TimelineEvent } from '@/types';
-import { CalendarDays, MapPin, UserCircle, Heart, Moon, Sun, LogOut, X } from 'lucide-react';
+import { CalendarDays, MapPin, UserCircle, Heart, Moon, Sun, LogOut, X, UserPlus, Plus, Check } from 'lucide-react';
+import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
+import { Button } from '@/components/ui/Button';
 
 const REACTION_EMOJIS = ['❤️', '🎉', '🥳', '💃', '🙌', '😍'];
 
@@ -87,6 +90,229 @@ function EmojiReactions({ eventId, guestCount }: { eventId: string; guestCount: 
         </button>
       ))}
     </div>
+  );
+}
+
+const VIEWER_TAG_OPTIONS = [
+  { value: 'Family', label: 'Family' },
+  { value: 'Friends', label: 'Friends' },
+  { value: 'Close Family', label: 'Close Family' },
+  { value: 'Extended Family', label: 'Extended Family' },
+  { value: 'Work', label: 'Work' },
+  { value: 'Neighbors', label: 'Neighbors' },
+];
+
+const VIEWER_SIDE_OPTIONS = [
+  { value: 'bride', label: "Bride's Side" },
+  { value: 'groom', label: "Groom's Side" },
+  { value: 'mutual', label: 'Mutual' },
+];
+
+function ViewerRsvpForm({ weddingId }: { weddingId: string }) {
+  const { user } = useAuth();
+  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [showForm, setShowForm] = useState(false);
+
+  const [name, setName] = useState(user?.user_metadata?.full_name || '');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [side, setSide] = useState('');
+  const [tag, setTag] = useState('');
+  const [familyNames, setFamilyNames] = useState<string[]>([]);
+  const [extraCount, setExtraCount] = useState(0);
+
+  const displayName = user?.user_metadata?.full_name || user?.email || 'Guest';
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) { setError('Your name is required'); return; }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const familyId = familyNames.length > 0 || extraCount > 0
+        ? crypto.randomUUID()
+        : null;
+
+      const baseInvitee = {
+        wedding_id: weddingId,
+        name: name.trim(),
+        phone: phone.trim() || null,
+        address: address.trim() || null,
+        map_link: null,
+        side: (side || null) as 'bride' | 'groom' | 'mutual' | null,
+        tags: tag ? [tag] : [],
+        priority: 'normal' as const,
+        rsvp_status: 'confirmed' as const,
+        visited: false,
+        family_id: familyId,
+        is_family_head: true,
+        extra_members: extraCount,
+        created_by: user?.id,
+        created_by_name: displayName,
+      };
+
+      const rows = [
+        baseInvitee,
+        ...familyNames.filter(Boolean).map((memberName) => ({
+          ...baseInvitee,
+          name: memberName.trim(),
+          is_family_head: false,
+          extra_members: 0,
+        })),
+      ];
+
+      const { error: insertErr } = await supabase.from('invitees').insert(rows);
+      if (insertErr) throw insertErr;
+
+      setSubmitted(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to submit RSVP');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <Card>
+        <div className="text-center py-6">
+          <div className="inline-flex items-center justify-center w-14 h-14 bg-mint-100 rounded-full mb-3">
+            <Check size={28} className="text-mint-500" />
+          </div>
+          <h3 className="text-lg font-bold text-warm-700 mb-1">RSVP Confirmed!</h3>
+          <p className="text-sm text-warm-400">
+            Thank you, {name}! We've added you to the guest list.
+          </p>
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold text-warm-700 flex items-center gap-2">
+          <UserPlus size={22} />
+          RSVP
+        </h2>
+        {!showForm && (
+          <Button size="sm" onClick={() => setShowForm(true)}>
+            Confirm Attendance
+          </Button>
+        )}
+      </div>
+
+      {!showForm ? (
+        <p className="text-sm text-warm-400">
+          Let the couple know you're coming! Add yourself and your family.
+        </p>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            label="Your Name *"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Your full name"
+          />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input
+              label="Phone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+91 ..."
+            />
+            <Input
+              label="Address"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="Your area / address"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Select
+              label="Side"
+              value={side}
+              onChange={(e) => setSide(e.target.value)}
+              options={VIEWER_SIDE_OPTIONS}
+              placeholder="Select side"
+            />
+            <Select
+              label="Relationship"
+              value={tag}
+              onChange={(e) => setTag(e.target.value)}
+              options={VIEWER_TAG_OPTIONS}
+              placeholder="Select relationship"
+            />
+          </div>
+
+          <div className="p-4 bg-blush-50 rounded-card space-y-3">
+            <p className="text-sm font-semibold text-warm-600">
+              Coming with family?
+            </p>
+
+            {familyNames.map((fn, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <Input
+                  value={fn}
+                  onChange={(e) => {
+                    const updated = [...familyNames];
+                    updated[idx] = e.target.value;
+                    setFamilyNames(updated);
+                  }}
+                  placeholder={`Family member ${idx + 1}`}
+                  className="flex-1"
+                />
+                <button
+                  type="button"
+                  onClick={() => setFamilyNames(familyNames.filter((_, i) => i !== idx))}
+                  className="p-2 rounded-full hover:bg-red-50 text-warm-400 hover:text-red-500 cursor-pointer"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ))}
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              icon={<Plus size={14} />}
+              onClick={() => setFamilyNames([...familyNames, ''])}
+            >
+              Add family member
+            </Button>
+
+            <div className="flex items-center gap-3 border-t border-blush-200 pt-3">
+              <label className="text-xs font-semibold text-warm-500 whitespace-nowrap">
+                Additional members:
+              </label>
+              <input
+                type="number"
+                min={0}
+                max={20}
+                value={extraCount}
+                onChange={(e) => setExtraCount(Math.max(0, parseInt(e.target.value) || 0))}
+                className="w-20 rounded-pill border border-blush-200 bg-white px-3 py-1.5 text-sm text-warm-700 text-center focus:outline-none focus:ring-2 focus:ring-blush-300"
+              />
+            </div>
+          </div>
+
+          {error && (
+            <p className="text-sm text-red-500 bg-red-50 px-4 py-2 rounded-sm">{error}</p>
+          )}
+
+          <Button type="submit" size="lg" className="w-full" loading={loading}>
+            Confirm RSVP ({1 + familyNames.filter(Boolean).length + extraCount} people)
+          </Button>
+        </form>
+      )}
+    </Card>
   );
 }
 
@@ -263,6 +489,10 @@ export function ViewerPage({ wedding, isPreview, onExitPreview }: ViewerPageProp
             </div>
           )}
         </div>
+
+        {!isPreview && (
+          <ViewerRsvpForm weddingId={wedding.id} />
+        )}
 
         {!isPreview && (
           <p className="text-center text-xs text-warm-300 pb-8">

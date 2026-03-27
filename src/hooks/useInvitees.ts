@@ -5,7 +5,7 @@ import type { Invitee } from '@/types';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || '';
 
-export function useInvitees(weddingId: string | undefined) {
+export function useInvitees(weddingId: string | undefined, userId?: string, userName?: string) {
   const queryClient = useQueryClient();
   const queryKey = ['invitees', weddingId];
 
@@ -47,7 +47,7 @@ export function useInvitees(weddingId: string | undefined) {
 
       const { data, error } = await supabase
         .from('invitees')
-        .insert({ ...invitee, lat, lng, wedding_id: weddingId })
+        .insert({ ...invitee, lat, lng, wedding_id: weddingId, created_by: userId, created_by_name: userName })
         .select()
         .single();
       if (error) throw error;
@@ -130,6 +130,8 @@ export function useInvitees(weddingId: string | undefined) {
           family_id: familyId,
           is_family_head: true,
           extra_members: extraCount,
+          created_by: userId,
+          created_by_name: userName,
         },
         ...memberNames.filter(Boolean).map((name) => ({
           name: name.trim(),
@@ -137,6 +139,8 @@ export function useInvitees(weddingId: string | undefined) {
           family_id: familyId,
           is_family_head: false,
           extra_members: 0,
+          created_by: userId,
+          created_by_name: userName,
           address: head.address,
           map_link: head.map_link,
           lat,

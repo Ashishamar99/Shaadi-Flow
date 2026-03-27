@@ -25,11 +25,12 @@ import {
 } from 'lucide-react';
 
 export function InviteesPage() {
-  const { wedding, canDelete } = useOutletContext<{
+  const { wedding, user, canDelete } = useOutletContext<{
     wedding: Wedding | null;
     user: User | null;
     canDelete: boolean;
   }>();
+  const displayName = user?.user_metadata?.full_name || user?.email || 'User';
   const {
     invitees,
     isLoading,
@@ -39,7 +40,7 @@ export function InviteesPage() {
     addFamily,
     deleteFamily,
     bulkInsert,
-  } = useInvitees(wedding?.id);
+  } = useInvitees(wedding?.id, user?.id, displayName);
 
   const [showForm, setShowForm] = useState(false);
   const [editingInvitee, setEditingInvitee] = useState<Invitee | null>(null);
@@ -48,6 +49,16 @@ export function InviteesPage() {
   const [filterRsvp, setFilterRsvp] = useState('');
   const [filterSide, setFilterSide] = useState('');
   const [filterPriority, setFilterPriority] = useState('');
+  const [filterCreatedBy, setFilterCreatedBy] = useState('');
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'az' | 'za'>('newest');
+
+  const creators = useMemo(() => {
+    const names = new Set<string>();
+    invitees.forEach((inv) => {
+      if (inv.created_by_name) names.add(inv.created_by_name);
+    });
+    return Array.from(names).sort();
+  }, [invitees]);
 
   const filtered = useMemo(() => {
     let result = invitees;
@@ -70,8 +81,21 @@ export function InviteesPage() {
     if (filterPriority) {
       result = result.filter((inv) => inv.priority === filterPriority);
     }
+    if (filterCreatedBy) {
+      result = result.filter((inv) => inv.created_by_name === filterCreatedBy);
+    }
+
+    result = [...result].sort((a, b) => {
+      switch (sortBy) {
+        case 'az': return a.name.localeCompare(b.name);
+        case 'za': return b.name.localeCompare(a.name);
+        case 'oldest': return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        default: return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+    });
+
     return result;
-  }, [invitees, search, filterRsvp, filterSide, filterPriority]);
+  }, [invitees, search, filterRsvp, filterSide, filterPriority, filterCreatedBy, sortBy]);
 
   const stats = useMemo(() => {
     const rows = invitees.length;
@@ -296,7 +320,27 @@ export function InviteesPage() {
               { value: 'optional', label: 'Optional' },
             ]}
           />
-          {(search || filterRsvp || filterSide || filterPriority) && (
+          {creators.length > 0 && (
+            <Select
+              value={filterCreatedBy}
+              onChange={(e) => setFilterCreatedBy(e.target.value)}
+              options={[
+                { value: '', label: 'All Creators' },
+                ...creators.map((c) => ({ value: c, label: c })),
+              ]}
+            />
+          )}
+          <Select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+            options={[
+              { value: 'newest', label: 'Newest First' },
+              { value: 'oldest', label: 'Oldest First' },
+              { value: 'az', label: 'A → Z' },
+              { value: 'za', label: 'Z → A' },
+            ]}
+          />
+          {(search || filterRsvp || filterSide || filterPriority || filterCreatedBy) && (
             <Badge variant="blush">
               {filtered.length} of {invitees.length}
             </Badge>
