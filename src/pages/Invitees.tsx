@@ -1,9 +1,11 @@
 import { useState, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useInvitees } from '@/hooks/useInvitees';
+import { useUndoDelete } from '@/hooks/useUndoDelete';
 import { InviteeTable } from '@/components/invitees/InviteeTable';
 import { InviteeForm } from '@/components/invitees/InviteeForm';
 import { CSVImport } from '@/components/invitees/CSVImport';
+import { UndoToast } from '@/components/ui/UndoToast';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -41,6 +43,8 @@ export function InviteesPage() {
     deleteFamily,
     bulkInsert,
   } = useInvitees(wedding?.id, user?.id, displayName);
+
+  const { pending: undoPending, scheduleDelete, undo, undoWindowMs } = useUndoDelete();
 
   const [showForm, setShowForm] = useState(false);
   const [editingInvitee, setEditingInvitee] = useState<Invitee | null>(null);
@@ -391,8 +395,14 @@ export function InviteesPage() {
         <InviteeTable
           invitees={filtered}
           onEdit={(inv) => setEditingInvitee(inv)}
-          onDelete={(id) => deleteInvitee.mutate(id)}
-          onDeleteFamily={(fid) => deleteFamily.mutate(fid)}
+          onDelete={(id) => {
+            const inv = invitees.find((i) => i.id === id);
+            scheduleDelete(inv?.name ?? 'Guest', () => deleteInvitee.mutate(id));
+          }}
+          onDeleteFamily={(fid) => {
+            const head = invitees.find((i) => i.family_id === fid && i.is_family_head);
+            scheduleDelete(head?.name ? `${head.name} & family` : 'Family', () => deleteFamily.mutate(fid));
+          }}
           onToggleVisited={handleToggleVisited}
           canDelete={canDelete}
         />
@@ -419,6 +429,8 @@ export function InviteesPage() {
         onClose={() => setShowImport(false)}
         onImport={handleCSVImport}
       />
+
+      <UndoToast pending={undoPending} onUndo={undo} undoWindowMs={undoWindowMs} />
     </div>
   );
 }

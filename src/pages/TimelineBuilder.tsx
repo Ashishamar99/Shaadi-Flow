@@ -15,13 +15,14 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useTimeline } from '@/hooks/useTimeline';
+import { useUndoDelete } from '@/hooks/useUndoDelete';
+import { UndoToast } from '@/components/ui/UndoToast';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Badge } from '@/components/ui/Badge';
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { exportElementAsImage, exportToCSV, eventsToExportData } from '@/lib/export';
 import type { Wedding, TimelineEvent } from '@/types';
 import type { User } from '@supabase/supabase-js';
@@ -295,7 +296,7 @@ export function TimelineBuilderPage() {
   const [showEventForm, setShowEventForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState<TimelineEvent | null>(null);
   const [activeDay, setActiveDay] = useState(1);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const { pending: undoPending, scheduleDelete, undo, undoWindowMs } = useUndoDelete();
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -547,7 +548,7 @@ export function TimelineBuilderPage() {
                       event={event}
                       hasConflict={conflicts.has(event.id)}
                       onEdit={() => setEditingEvent(event)}
-                      onDelete={() => setDeleteId(event.id)}
+                      onDelete={() => scheduleDelete(event.title, () => deleteEvent.mutate(event.id))}
                       canDelete={canDelete}
                     />
                   ))}
@@ -577,17 +578,7 @@ export function TimelineBuilderPage() {
         />
       )}
 
-      <ConfirmDialog
-        open={!!deleteId}
-        onClose={() => setDeleteId(null)}
-        onConfirm={() => {
-          if (deleteId) deleteEvent.mutate(deleteId);
-          setDeleteId(null);
-        }}
-        title="Delete Event"
-        message="Are you sure you want to remove this event?"
-        confirmLabel="Delete"
-      />
+      <UndoToast pending={undoPending} onUndo={undo} undoWindowMs={undoWindowMs} />
     </div>
   );
 }

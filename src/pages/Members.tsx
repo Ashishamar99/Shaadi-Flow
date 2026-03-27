@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { useUndoDelete } from '@/hooks/useUndoDelete';
+import { UndoToast } from '@/components/ui/UndoToast';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -8,7 +10,6 @@ import { Select } from '@/components/ui/Select';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Avatar } from '@/components/ui/Avatar';
 import type { Wedding } from '@/types';
 import type { User } from '@supabase/supabase-js';
@@ -61,7 +62,7 @@ export function MembersPage() {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState('');
   const [inviteSuccess, setInviteSuccess] = useState('');
-  const [removeId, setRemoveId] = useState<string | null>(null);
+  const { pending: undoPending, scheduleDelete, undo, undoWindowMs } = useUndoDelete();
   const [copied, setCopied] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
@@ -162,18 +163,6 @@ export function MembersPage() {
       .update({ role: newRole })
       .eq('id', memberId);
     if (!error) fetchMembers();
-  };
-
-  const handleRemove = async () => {
-    if (!removeId) return;
-    const { error } = await supabase
-      .from('wedding_members')
-      .delete()
-      .eq('id', removeId);
-    if (!error) {
-      setRemoveId(null);
-      fetchMembers();
-    }
   };
 
   const handleCopyId = () => {
@@ -413,7 +402,13 @@ export function MembersPage() {
                         className="!py-1.5 !text-xs w-28"
                       />
                       <button
-                        onClick={() => setRemoveId(member.id)}
+                        onClick={() => scheduleDelete(
+                          member.display_name || member.email || 'Member',
+                          async () => {
+                            await supabase.from('wedding_members').delete().eq('id', member.id);
+                            fetchMembers();
+                          }
+                        )}
                         className="p-1.5 rounded-full hover:bg-red-50 text-warm-400 hover:text-red-500 transition-colors cursor-pointer"
                       >
                         <Trash2 size={14} />
@@ -512,14 +507,7 @@ export function MembersPage() {
         </form>
       </Modal>
 
-      <ConfirmDialog
-        open={!!removeId}
-        onClose={() => setRemoveId(null)}
-        onConfirm={handleRemove}
-        title="Remove Member"
-        message="Are you sure you want to remove this person from the wedding space? They will lose all access."
-        confirmLabel="Remove"
-      />
+      <UndoToast pending={undoPending} onUndo={undo} undoWindowMs={undoWindowMs} />
     </div>
   );
 }

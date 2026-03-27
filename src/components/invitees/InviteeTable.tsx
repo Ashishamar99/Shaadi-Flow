@@ -275,7 +275,7 @@ export function InviteeTable({
                           </button>
                         ) : (
                           <button
-                            onClick={() => setDeleteId(inv.id)}
+                            onClick={() => onDelete(inv.id)}
                             className="p-1.5 rounded-full hover:bg-red-50 text-warm-400 hover:text-red-500 transition-colors cursor-pointer"
                           >
                             <Trash2 size={16} />
