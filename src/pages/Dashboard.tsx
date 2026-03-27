@@ -146,20 +146,6 @@ export function DashboardPage() {
       bg: 'bg-blue-50',
     },
     {
-      label: 'Reception',
-      value: stats.receptionCount,
-      icon: CalendarDays,
-      color: 'text-blush-500',
-      bg: 'bg-blush-100',
-    },
-    {
-      label: 'Muhurtham',
-      value: stats.muhurthamCount,
-      icon: CalendarDays,
-      color: 'text-mint-500',
-      bg: 'bg-mint-100',
-    },
-    {
       label: 'RSVP Pending',
       value: stats.pendingRsvp,
       icon: Clock,
