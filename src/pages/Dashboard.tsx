@@ -40,6 +40,8 @@ export function DashboardPage() {
     confirmed: 0,
     visited: 0,
     pendingRsvp: 0,
+    receptionCount: 0,
+    muhurthamCount: 0,
   });
   const [upcomingEvents, setUpcomingEvents] = useState<TimelineEvent[]>([]);
   const [editingDate, setEditingDate] = useState(false);
@@ -60,9 +62,23 @@ export function DashboardPage() {
             sum + 1 + (i.is_family_head ? (i.extra_members ?? 0) : 0),
           0,
         );
+        const receptionHeads = invitees.filter(
+          (i: Invitee) => i.attending_reception && (i.is_family_head || !i.family_id),
+        );
+        const receptionCount = receptionHeads.reduce(
+          (s: number, i: Invitee) => s + 1 + (i.extra_members ?? 0), 0,
+        );
+        const muhurthamHeads = invitees.filter(
+          (i: Invitee) => i.attending_muhurtham && (i.is_family_head || !i.family_id),
+        );
+        const muhurthamCount = muhurthamHeads.reduce(
+          (s: number, i: Invitee) => s + 1 + (i.extra_members ?? 0), 0,
+        );
         setStats({
           totalGuests: invitees.length,
           headcount,
+          receptionCount,
+          muhurthamCount,
           confirmed: invitees.filter(
             (i: Invitee) => i.rsvp_status === 'confirmed',
           ).length,
@@ -128,6 +144,20 @@ export function DashboardPage() {
       icon: MapPin,
       color: 'text-blue-500',
       bg: 'bg-blue-50',
+    },
+    {
+      label: 'Reception',
+      value: stats.receptionCount,
+      icon: CalendarDays,
+      color: 'text-blush-500',
+      bg: 'bg-blush-100',
+    },
+    {
+      label: 'Muhurtham',
+      value: stats.muhurthamCount,
+      icon: CalendarDays,
+      color: 'text-mint-500',
+      bg: 'bg-mint-100',
     },
     {
       label: 'RSVP Pending',

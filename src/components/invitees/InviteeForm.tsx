@@ -66,6 +66,8 @@ export function InviteeForm({
     time_constraint: '',
   });
   const [tagsArray, setTagsArray] = useState<string[]>([]);
+  const [attendReception, setAttendReception] = useState(true);
+  const [attendMuhurtham, setAttendMuhurtham] = useState(true);
   const [familyMembers, setFamilyMembers] = useState<string[]>([]);
   const [extraCount, setExtraCount] = useState(0);
   const [error, setError] = useState('');
@@ -91,6 +93,8 @@ export function InviteeForm({
         time_constraint: initialData.time_constraint ?? '',
       });
       setExtraCount(initialData.extra_members ?? 0);
+      setAttendReception(initialData.attending_reception ?? true);
+      setAttendMuhurtham(initialData.attending_muhurtham ?? true);
       setFamilyMembers([]);
     } else {
       setForm({
@@ -106,6 +110,8 @@ export function InviteeForm({
         time_constraint: '',
       });
       setTagsArray([]);
+      setAttendReception(true);
+      setAttendMuhurtham(true);
       setFamilyMembers([]);
       setExtraCount(0);
       setMode('single');
@@ -188,6 +194,8 @@ export function InviteeForm({
       priority: form.priority as Invitee['priority'],
       rsvp_status: form.rsvp_status as Invitee['rsvp_status'],
       time_constraint: form.time_constraint.trim() || null,
+      attending_reception: attendReception,
+      attending_muhurtham: attendMuhurtham,
     };
 
     // When editing a family head, also save extra_members
@@ -433,6 +441,27 @@ export function InviteeForm({
             onChange={(e) => setForm({ ...form, time_constraint: e.target.value })}
             placeholder="e.g., Only after 6 PM"
           />
+        </div>
+
+        <div className="flex items-center gap-6">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={attendReception}
+              onChange={(e) => setAttendReception(e.target.checked)}
+              className="w-4 h-4 accent-blush-400 cursor-pointer"
+            />
+            <span className="text-sm text-warm-600">Reception</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={attendMuhurtham}
+              onChange={(e) => setAttendMuhurtham(e.target.checked)}
+              className="w-4 h-4 accent-blush-400 cursor-pointer"
+            />
+            <span className="text-sm text-warm-600">Muhurtham</span>
+          </label>
         </div>
 
         <TagInput

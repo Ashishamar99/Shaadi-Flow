@@ -26,6 +26,8 @@ export interface Invitee {
   family_id: string | null;
   is_family_head: boolean;
   extra_members: number;
+  attending_reception: boolean;
+  attending_muhurtham: boolean;
   created_by: string | null;
   created_by_name: string | null;
   created_at: string;

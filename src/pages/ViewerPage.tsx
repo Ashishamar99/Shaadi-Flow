@@ -159,6 +159,8 @@ function ViewerRsvpForm({ weddingId, isPreview }: { weddingId: string; isPreview
   const [side, setSide] = useState('');
   const [tag, setTag] = useState('');
   const [totalPeople, setTotalPeople] = useState(1);
+  const [attendReception, setAttendReception] = useState(true);
+  const [attendMuhurtham, setAttendMuhurtham] = useState(true);
 
   const displayName = user?.user_metadata?.full_name || user?.email || 'Guest';
 
@@ -185,6 +187,8 @@ function ViewerRsvpForm({ weddingId, isPreview }: { weddingId: string; isPreview
         setSide(data.side || '');
         setTag(data.tags?.[0] || '');
         setTotalPeople(1 + (data.extra_members || 0));
+        setAttendReception(data.attending_reception ?? true);
+        setAttendMuhurtham(data.attending_muhurtham ?? true);
         setSaved(true);
       }
       setChecking(false);
@@ -214,6 +218,8 @@ function ViewerRsvpForm({ weddingId, isPreview }: { weddingId: string; isPreview
         tags: tag ? [tag] : [],
         extra_members: Math.max(0, totalPeople - 1),
         rsvp_status: 'confirmed' as const,
+        attending_reception: attendReception,
+        attending_muhurtham: attendMuhurtham,
       };
 
       if (existingId) {
@@ -264,6 +270,9 @@ function ViewerRsvpForm({ weddingId, isPreview }: { weddingId: string; isPreview
               <p className="text-sm font-bold text-warm-700">RSVP Confirmed</p>
               <p className="text-xs text-warm-400">
                 {name} {totalPeople > 1 ? `and family (${totalPeople} people)` : '(1 person)'}
+              </p>
+              <p className="text-xs text-warm-300 mt-0.5">
+                {[attendMuhurtham && 'Muhurtham', attendReception && 'Reception'].filter(Boolean).join(' + ')}
               </p>
             </div>
           </div>
@@ -367,6 +376,33 @@ function ViewerRsvpForm({ weddingId, isPreview }: { weddingId: string; isPreview
               <p className="text-xs text-warm-400 mt-1">
                 You + {totalPeople - 1} family member{totalPeople > 2 ? 's' : ''}
               </p>
+            )}
+          </div>
+
+          <div className="p-4 bg-blush-50 rounded-card space-y-3">
+            <p className="text-sm font-semibold text-warm-600">Attending</p>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={attendMuhurtham}
+                onChange={(e) => setAttendMuhurtham(e.target.checked)}
+                className="w-4 h-4 accent-blush-400 cursor-pointer"
+              />
+              <span className="text-sm text-warm-600">Muhurtham</span>
+              <span className="text-xs text-warm-400">Sun, 26 Apr</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={attendReception}
+                onChange={(e) => setAttendReception(e.target.checked)}
+                className="w-4 h-4 accent-blush-400 cursor-pointer"
+              />
+              <span className="text-sm text-warm-600">Reception</span>
+              <span className="text-xs text-warm-400">Sat, 25 Apr</span>
+            </label>
+            {!attendMuhurtham && !attendReception && (
+              <p className="text-xs text-red-500">Please select at least one event</p>
             )}
           </div>
 

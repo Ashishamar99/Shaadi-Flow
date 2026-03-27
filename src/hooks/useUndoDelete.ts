@@ -50,6 +50,14 @@ export function useUndoDelete() {
     setPending([...pendingRef.current]);
   }, []);
 
+  const dismiss = useCallback((id: string) => {
+    const entry = pendingRef.current.find((p) => p.id === id);
+    if (entry?.timeoutId) clearTimeout(entry.timeoutId);
+    entry?.onConfirm();
+    pendingRef.current = pendingRef.current.filter((p) => p.id !== id);
+    setPending([...pendingRef.current]);
+  }, []);
+
   const hiddenKeys = useMemo(
     () => new Set(pending.map((p) => p.hiddenKey)),
     [pending],
@@ -57,5 +65,5 @@ export function useUndoDelete() {
 
   const undoWindowMs = UNDO_WINDOW_MS;
 
-  return { pending, scheduleDelete, undo, undoWindowMs, hiddenKeys };
+  return { pending, scheduleDelete, undo, dismiss, undoWindowMs, hiddenKeys };
 }

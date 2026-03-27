@@ -46,7 +46,7 @@ export function InviteesPage() {
     bulkInsert,
   } = useInvitees(wedding?.id, user?.id, displayName);
 
-  const { pending: undoPending, scheduleDelete, undo, undoWindowMs, hiddenKeys } = useUndoDelete();
+  const { pending: undoPending, scheduleDelete, undo, dismiss, undoWindowMs, hiddenKeys } = useUndoDelete();
 
   const [showForm, setShowForm] = useState(false);
   const [editingInvitee, setEditingInvitee] = useState<Invitee | null>(null);
@@ -57,6 +57,7 @@ export function InviteesPage() {
   const [filterPriority, setFilterPriority] = useState('');
   const [filterCreatedBy, setFilterCreatedBy] = useState('');
   const [filterHeadcount, setFilterHeadcount] = useState('');
+  const [filterEvent, setFilterEvent] = useState('');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'az' | 'za'>('newest');
 
   const visibleInvitees = useMemo(
@@ -103,6 +104,13 @@ export function InviteesPage() {
         return hc >= 5 ? total >= 5 : total === hc;
       });
     }
+    if (filterEvent === 'reception') {
+      result = result.filter((inv) => inv.attending_reception);
+    } else if (filterEvent === 'muhurtham') {
+      result = result.filter((inv) => inv.attending_muhurtham);
+    } else if (filterEvent === 'both') {
+      result = result.filter((inv) => inv.attending_reception && inv.attending_muhurtham);
+    }
 
     result = [...result].sort((a, b) => {
       switch (sortBy) {
@@ -114,33 +122,31 @@ export function InviteesPage() {
     });
 
     return result;
-  }, [visibleInvitees, search, filterRsvp, filterSide, filterPriority, filterCreatedBy, filterHeadcount, sortBy]);
+  }, [visibleInvitees, search, filterRsvp, filterSide, filterPriority, filterCreatedBy, filterHeadcount, filterEvent, sortBy]);
 
   const stats = useMemo(() => {
-    const rows = visibleInvitees.length;
-    const headcount = visibleInvitees.reduce(
+    const headcount = filtered.reduce(
       (sum, inv) => sum + 1 + (inv.is_family_head ? inv.extra_members : 0),
       0,
     );
-    // Visits = solo guests + unique families (family_id groups count as 1 visit)
     const familyIds = new Set(
-      visibleInvitees.filter((i) => i.family_id).map((i) => i.family_id),
+      filtered.filter((i) => i.family_id).map((i) => i.family_id),
     );
-    const soloCount = visibleInvitees.filter((i) => !i.family_id).length;
+    const soloCount = filtered.filter((i) => !i.family_id).length;
     const visits = soloCount + familyIds.size;
 
-    const confirmed = visibleInvitees.filter(
+    const confirmed = filtered.filter(
       (i) => i.rsvp_status === 'confirmed' && (i.is_family_head || !i.family_id),
     ).length;
-    const pending = visibleInvitees.filter(
+    const pending = filtered.filter(
       (i) => i.rsvp_status === 'pending' && (i.is_family_head || !i.family_id),
     ).length;
-    const visited = visibleInvitees.filter(
+    const visited = filtered.filter(
       (i) => i.visited && (i.is_family_head || !i.family_id),
     ).length;
 
-    return { rows, headcount, visits, confirmed, visited, pending };
-  }, [visibleInvitees]);
+    return { headcount, visits, confirmed, visited, pending };
+  }, [filtered]);
 
   const handleAddGuest = (data: Partial<Invitee>) => {
     addInvitee.mutate(data, { onSuccess: () => setShowForm(false) });
@@ -267,7 +273,7 @@ export function InviteesPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <Card padding="sm">
           <div className="flex items-center gap-3">
             <UsersRound size={18} className="text-blush-400" />
@@ -299,7 +305,7 @@ export function InviteesPage() {
             </div>
           </div>
         </Card>
-        <Card padding="sm" className="hidden sm:block">
+        <Card padding="sm">
           <div className="flex items-center gap-3">
             <CheckCircle2 size={18} className="text-blue-400" />
             <div>
@@ -310,7 +316,7 @@ export function InviteesPage() {
             </div>
           </div>
         </Card>
-        <Card padding="sm" className="hidden lg:block">
+        <Card padding="sm">
           <div className="flex items-center gap-3">
             <Clock size={18} className="text-amber-400" />
             <div>
@@ -318,15 +324,6 @@ export function InviteesPage() {
                 {stats.pending}
               </p>
               <p className="text-xs text-warm-400">Pending</p>
-            </div>
-          </div>
-        </Card>
-        <Card padding="sm" className="hidden lg:block">
-          <div className="flex items-center gap-3">
-            <Users size={18} className="text-blush-300" />
-            <div>
-              <p className="text-lg font-bold text-warm-700">{stats.rows}</p>
-              <p className="text-xs text-warm-400">Entries</p>
             </div>
           </div>
         </Card>
@@ -395,6 +392,16 @@ export function InviteesPage() {
             ]}
           />
           <Select
+            value={filterEvent}
+            onChange={(e) => setFilterEvent(e.target.value)}
+            options={[
+              { value: '', label: 'All Events' },
+              { value: 'reception', label: 'Reception' },
+              { value: 'muhurtham', label: 'Muhurtham' },
+              { value: 'both', label: 'Both Events' },
+            ]}
+          />
+          <Select
             value={filterHeadcount}
             onChange={(e) => setFilterHeadcount(e.target.value)}
             options={[
@@ -406,7 +413,7 @@ export function InviteesPage() {
               { value: '5', label: '5+' },
             ]}
           />
-          {(search || filterRsvp || filterSide || filterPriority || filterCreatedBy || filterHeadcount) && (
+          {(search || filterRsvp || filterSide || filterPriority || filterCreatedBy || filterHeadcount || filterEvent) && (
             <Badge variant="blush">
               {filtered.length} of {visibleInvitees.length}
             </Badge>
@@ -468,7 +475,7 @@ export function InviteesPage() {
         onImport={handleCSVImport}
       />
 
-      <UndoToast pending={undoPending} onUndo={undo} undoWindowMs={undoWindowMs} />
+      <UndoToast pending={undoPending} onUndo={undo} onDismiss={dismiss} undoWindowMs={undoWindowMs} />
     </div>
   );
 }

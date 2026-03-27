@@ -62,7 +62,7 @@ export function MembersPage() {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState('');
   const [inviteSuccess, setInviteSuccess] = useState('');
-  const { pending: undoPending, scheduleDelete, undo, undoWindowMs, hiddenKeys } = useUndoDelete();
+  const { pending: undoPending, scheduleDelete, undo, dismiss, undoWindowMs, hiddenKeys } = useUndoDelete();
   const [copied, setCopied] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
@@ -508,7 +508,7 @@ export function MembersPage() {
         </form>
       </Modal>
 
-      <UndoToast pending={undoPending} onUndo={undo} undoWindowMs={undoWindowMs} />
+      <UndoToast pending={undoPending} onUndo={undo} onDismiss={dismiss} undoWindowMs={undoWindowMs} />
     </div>
   );
 }

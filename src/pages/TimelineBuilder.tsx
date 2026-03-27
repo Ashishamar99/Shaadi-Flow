@@ -296,7 +296,7 @@ export function TimelineBuilderPage() {
   const [showEventForm, setShowEventForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState<TimelineEvent | null>(null);
   const [activeDay, setActiveDay] = useState(1);
-  const { pending: undoPending, scheduleDelete, undo, undoWindowMs, hiddenKeys } = useUndoDelete();
+  const { pending: undoPending, scheduleDelete, undo, dismiss, undoWindowMs, hiddenKeys } = useUndoDelete();
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -600,7 +600,7 @@ export function TimelineBuilderPage() {
         />
       )}
 
-      <UndoToast pending={undoPending} onUndo={undo} undoWindowMs={undoWindowMs} />
+      <UndoToast pending={undoPending} onUndo={undo} onDismiss={dismiss} undoWindowMs={undoWindowMs} />
     </div>
   );
 }

@@ -66,7 +66,7 @@ export function RoutePlannerPage() {
     return Math.max(1, diff);
   }, [wedding?.wedding_date]);
 
-  // Exclude visited, only family heads / solos with location
+  // Exclude visited and RSVP entries (created_by = viewer self-added)
   const locatedInvitees = useMemo(
     () =>
       invitees.filter(
@@ -74,6 +74,7 @@ export function RoutePlannerPage() {
           inv.lat != null &&
           inv.lng != null &&
           !inv.visited &&
+          !inv.created_by &&
           (inv.is_family_head || inv.is_family_head === undefined) &&
           (!inv.family_id || inv.is_family_head),
       ),

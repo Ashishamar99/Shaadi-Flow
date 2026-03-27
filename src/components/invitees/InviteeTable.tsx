@@ -151,6 +151,9 @@ export function InviteeTable({
               <th className="text-left px-4 py-3 text-xs font-semibold text-warm-400 uppercase tracking-wider hidden lg:table-cell">
                 Priority
               </th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-warm-400 uppercase tracking-wider hidden xl:table-cell">
+                Events
+              </th>
               <th className="text-right px-4 py-3 text-xs font-semibold text-warm-400 uppercase tracking-wider">
                 Actions
               </th>
@@ -266,6 +269,18 @@ export function InviteeTable({
                   </td>
                   <td className="px-4 py-3 hidden lg:table-cell">
                     <PriorityBadge priority={inv.priority} />
+                  </td>
+                  <td className="px-4 py-3 hidden xl:table-cell">
+                    {!isFamilyMember && (
+                      <div className="flex gap-1">
+                        {inv.attending_muhurtham && (
+                          <span className="text-[10px] bg-blush-100 text-blush-600 px-1.5 py-0.5 rounded-pill font-semibold">M</span>
+                        )}
+                        {inv.attending_reception && (
+                          <span className="text-[10px] bg-mint-100 text-mint-600 px-1.5 py-0.5 rounded-pill font-semibold">R</span>
+                        )}
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">

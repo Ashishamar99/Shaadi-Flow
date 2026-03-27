@@ -5,16 +5,19 @@ import { Trash2, RotateCcw, X } from 'lucide-react';
 interface UndoToastProps {
   pending: PendingDelete[];
   onUndo: (id: string) => void;
+  onDismiss?: (id: string) => void;
   undoWindowMs: number;
 }
 
 function ToastItem({
   item,
   onUndo,
+  onDismiss,
   undoWindowMs,
 }: {
   item: PendingDelete;
   onUndo: (id: string) => void;
+  onDismiss?: (id: string) => void;
   undoWindowMs: number;
 }) {
   const [progress, setProgress] = useState(100);
@@ -31,7 +34,6 @@ function ToastItem({
 
   return (
     <div className="flex items-center gap-3 bg-warm-700 text-white rounded-card px-4 py-3 shadow-lifted min-w-[280px] relative overflow-hidden">
-      {/* progress bar */}
       <div
         className="absolute bottom-0 left-0 h-0.5 bg-blush-300 transition-all"
         style={{ width: `${progress}%` }}
@@ -49,7 +51,7 @@ function ToastItem({
         Undo
       </button>
       <button
-        onClick={() => onUndo(item.id)}
+        onClick={() => onDismiss?.(item.id)}
         className="p-1 rounded-full hover:bg-white/20 transition-colors cursor-pointer"
         title="Dismiss"
       >
@@ -59,7 +61,7 @@ function ToastItem({
   );
 }
 
-export function UndoToast({ pending, onUndo, undoWindowMs }: UndoToastProps) {
+export function UndoToast({ pending, onUndo, onDismiss, undoWindowMs }: UndoToastProps) {
   if (pending.length === 0) return null;
 
   return (
@@ -69,6 +71,7 @@ export function UndoToast({ pending, onUndo, undoWindowMs }: UndoToastProps) {
           key={item.id}
           item={item}
           onUndo={onUndo}
+          onDismiss={onDismiss}
           undoWindowMs={undoWindowMs}
         />
       ))}

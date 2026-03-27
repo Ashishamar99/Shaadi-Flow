@@ -3,6 +3,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { Avatar } from '@/components/ui/Avatar';
 import { LogOut, Menu, Moon, Sun, Eye } from 'lucide-react';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
   weddingName?: string;
@@ -13,6 +14,7 @@ interface HeaderProps {
 export function Header({ weddingName, onMenuToggle, onPreviewAsViewer }: HeaderProps) {
   const { user, signOut } = useAuth();
   const { dark, toggle } = useTheme();
+  const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const displayName = user?.user_metadata?.full_name || user?.email || 'User';
@@ -28,9 +30,12 @@ export function Header({ weddingName, onMenuToggle, onPreviewAsViewer }: HeaderP
           <Menu size={20} />
         </button>
         {weddingName && (
-          <h1 className="text-base md:text-lg font-bold text-warm-700 truncate">
+          <button
+            onClick={() => navigate('/')}
+            className="text-base md:text-lg font-bold text-warm-700 truncate hover:text-blush-500 transition-colors cursor-pointer"
+          >
             {weddingName}
-          </h1>
+          </button>
         )}
       </div>
 
