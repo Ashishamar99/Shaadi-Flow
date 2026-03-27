@@ -263,7 +263,7 @@ function ViewerRsvpForm({ weddingId, isPreview }: { weddingId: string; isPreview
             <div>
               <p className="text-sm font-bold text-warm-700">RSVP Confirmed</p>
               <p className="text-xs text-warm-400">
-                {name} {totalPeople > 1 ? `+ ${totalPeople - 1} (${totalPeople} total)` : ''}
+                {name} {totalPeople > 1 ? `and family (${totalPeople} people)` : '(1 person)'}
               </p>
             </div>
           </div>
@@ -400,7 +400,6 @@ export function ViewerPage({ wedding, isPreview, onExitPreview }: ViewerPageProp
   const { signOut } = useAuth();
   const { dark, toggle } = useTheme();
   const [events, setEvents] = useState<TimelineEvent[]>([]);
-  const [totalDays, setTotalDays] = useState(1);
   const [guestCount, setGuestCount] = useState(10);
 
   useEffect(() => {
@@ -413,8 +412,6 @@ export function ViewerPage({ wedding, isPreview, onExitPreview }: ViewerPageProp
         .order('sort_order');
       if (data) {
         setEvents(data);
-        const maxDay = data.reduce((m, e) => Math.max(m, e.day_number), 1);
-        setTotalDays(maxDay);
       }
 
       const { count } = await supabase
@@ -525,12 +522,22 @@ export function ViewerPage({ wedding, isPreview, onExitPreview }: ViewerPageProp
             </Card>
           ) : (
             <div className="space-y-6">
-              {Array.from({ length: totalDays }, (_, i) => i + 1).map((day) => {
+              {Array.from(new Set(events.map((e) => e.day_number)))
+                .sort((a, b) => a - b)
+                .map((day) => {
                 const dayEvents = events.filter((e) => e.day_number === day);
                 if (dayEvents.length === 0) return null;
+                const displayDay = day <= 0 ? day - 1 : day;
+                let dayLabel = `Day ${displayDay}`;
+                if (weddingDate) {
+                  const date = new Date(weddingDate);
+                  date.setDate(date.getDate() + (day - 1));
+                  const formatted = date.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+                  dayLabel = `${formatted} (Day ${displayDay})`;
+                }
                 return (
                   <div key={day}>
-                    <h3 className="text-sm font-bold text-warm-500 mb-2">Day {day}</h3>
+                    <h3 className="text-sm font-bold text-warm-500 mb-2">{dayLabel}</h3>
                     <div className="space-y-2">
                       {dayEvents.map((ev) => (
                         <Card key={ev.id} padding="sm">

@@ -131,3 +131,9 @@ html.dark .bg-gradient-to-r {
 
 html.dark .hover\:bg-blush-50:hover { background-color: var(--color-dark-hover) !important; }
 html.dark .hover\:bg-blush-100:hover { background-color: #2E232A !important; }
+
+/* Dark mode button contrast fix */
+html.dark .bg-blush-300 { background-color: #C4898A !important; color: #1A0F12 !important; }
+html.dark .bg-blush-300:hover { background-color: #B87576 !important; }
+html.dark .bg-mint-200 { background-color: #6DBFA5 !important; color: #0F1A15 !important; }
+html.dark .bg-mint-200:hover { background-color: #5CAE94 !important; }

@@ -103,6 +103,8 @@ export interface RouteDay {
   totalDistance: number;
   totalDuration: number;
   routeGeometry: GeoJSON.LineString | null;
+  overTime?: boolean;
+  maxMinutes?: number;
 }
 
 export interface ClusterResult {

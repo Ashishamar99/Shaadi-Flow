@@ -27,11 +27,13 @@ import {
 } from 'lucide-react';
 
 export function InviteesPage() {
-  const { wedding, user, canDelete } = useOutletContext<{
+  const { wedding, user, canDelete, role } = useOutletContext<{
     wedding: Wedding | null;
     user: User | null;
     canDelete: boolean;
+    role: string;
   }>();
+  const isAdminOrOwner = role === 'owner' || role === 'admin';
   const displayName = user?.user_metadata?.full_name || user?.email || 'User';
   const {
     invitees,
@@ -54,6 +56,7 @@ export function InviteesPage() {
   const [filterSide, setFilterSide] = useState('');
   const [filterPriority, setFilterPriority] = useState('');
   const [filterCreatedBy, setFilterCreatedBy] = useState('');
+  const [filterHeadcount, setFilterHeadcount] = useState('');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'az' | 'za'>('newest');
 
   const visibleInvitees = useMemo(
@@ -93,6 +96,13 @@ export function InviteesPage() {
     if (filterCreatedBy) {
       result = result.filter((inv) => inv.created_by_name === filterCreatedBy);
     }
+    if (filterHeadcount) {
+      const hc = parseInt(filterHeadcount);
+      result = result.filter((inv) => {
+        const total = 1 + (inv.extra_members || 0);
+        return hc >= 5 ? total >= 5 : total === hc;
+      });
+    }
 
     result = [...result].sort((a, b) => {
       switch (sortBy) {
@@ -104,7 +114,7 @@ export function InviteesPage() {
     });
 
     return result;
-  }, [visibleInvitees, search, filterRsvp, filterSide, filterPriority, filterCreatedBy, sortBy]);
+  }, [visibleInvitees, search, filterRsvp, filterSide, filterPriority, filterCreatedBy, filterHeadcount, sortBy]);
 
   const stats = useMemo(() => {
     const rows = visibleInvitees.length;
@@ -178,7 +188,17 @@ export function InviteesPage() {
   };
 
   const handleToggleVisited = (inv: Invitee) => {
-    updateInvitee.mutate({ id: inv.id, visited: !inv.visited });
+    const newVisited = !inv.visited;
+    updateInvitee.mutate({ id: inv.id, visited: newVisited });
+
+    if (inv.family_id && inv.is_family_head) {
+      const familyMembers = invitees.filter(
+        (i) => i.family_id === inv.family_id && i.id !== inv.id,
+      );
+      for (const member of familyMembers) {
+        updateInvitee.mutate({ id: member.id, visited: newVisited });
+      }
+    }
   };
 
   const handleCSVImport = (rows: Record<string, string>[]) => {
@@ -374,7 +394,19 @@ export function InviteesPage() {
               { value: 'za', label: 'Z → A' },
             ]}
           />
-          {(search || filterRsvp || filterSide || filterPriority || filterCreatedBy) && (
+          <Select
+            value={filterHeadcount}
+            onChange={(e) => setFilterHeadcount(e.target.value)}
+            options={[
+              { value: '', label: 'All Sizes' },
+              { value: '1', label: '1 person' },
+              { value: '2', label: '2 people' },
+              { value: '3', label: '3 people' },
+              { value: '4', label: '4 people' },
+              { value: '5', label: '5+' },
+            ]}
+          />
+          {(search || filterRsvp || filterSide || filterPriority || filterCreatedBy || filterHeadcount) && (
             <Badge variant="blush">
               {filtered.length} of {visibleInvitees.length}
             </Badge>
@@ -410,6 +442,7 @@ export function InviteesPage() {
           }}
           onToggleVisited={handleToggleVisited}
           canDelete={canDelete}
+          isAdminOrOwner={isAdminOrOwner}
         />
       )}
 

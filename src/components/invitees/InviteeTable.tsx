@@ -12,6 +12,7 @@ import {
   ChevronDown,
   ChevronRight,
   Users,
+  UserCheck,
 } from 'lucide-react';
 
 interface InviteeTableProps {
@@ -21,6 +22,7 @@ interface InviteeTableProps {
   onDeleteFamily?: (familyId: string) => void;
   onToggleVisited: (invitee: Invitee) => void;
   canDelete?: boolean;
+  isAdminOrOwner?: boolean;
 }
 
 interface DisplayRow {
@@ -39,6 +41,7 @@ export function InviteeTable({
   onDeleteFamily,
   onToggleVisited,
   canDelete = true,
+  isAdminOrOwner = false,
 }: InviteeTableProps) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteFamilyId, setDeleteFamilyId] = useState<string | null>(null);
@@ -108,14 +111,15 @@ export function InviteeTable({
       }
     }
 
-    // Add solos
+    // Add solos (including RSVP entries with extra_members)
     for (const inv of solos) {
+      const totalPeople = 1 + (inv.extra_members || 0);
       result.push({
         type: 'solo',
         invitee: inv,
         familyId: null,
-        headcount: 1,
-        memberCount: 0,
+        headcount: totalPeople,
+        memberCount: inv.extra_members || 0,
         allVisited: inv.visited,
       });
     }
@@ -187,10 +191,10 @@ export function InviteeTable({
                       {isFamilyMember && <span className="w-4" />}
                       <button
                         onClick={() => onToggleVisited(inv)}
-                        className="cursor-pointer text-warm-300 hover:text-mint-500 transition-colors"
+                        className="cursor-pointer text-warm-300 hover:text-blue-500 transition-colors"
                       >
-                        {(isFamilyHead && !isExpanded ? row.allVisited : inv.visited) ? (
-                          <CheckCircle size={20} className="text-mint-500" />
+                        {inv.visited ? (
+                          <CheckCircle size={20} className="text-blue-500" />
                         ) : (
                           <Circle size={20} />
                         )}
@@ -209,6 +213,12 @@ export function InviteeTable({
                         {isFamilyHead && row.memberCount > 0 && (
                           <Badge variant="blush">
                             <Users size={10} className="mr-1" />
+                            {row.headcount}
+                          </Badge>
+                        )}
+                        {!isFamilyHead && !isFamilyMember && row.headcount > 1 && (
+                          <Badge variant="mint">
+                            <UserCheck size={10} className="mr-1" />
                             {row.headcount}
                           </Badge>
                         )}
@@ -259,12 +269,14 @@ export function InviteeTable({
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
-                      <button
-                        onClick={() => onEdit(inv)}
-                        className="p-1.5 rounded-full hover:bg-blush-100 text-warm-400 hover:text-warm-600 transition-colors cursor-pointer"
-                      >
-                        <Edit3 size={16} />
-                      </button>
+                      {(!inv.created_by || isAdminOrOwner) && (
+                        <button
+                          onClick={() => onEdit(inv)}
+                          className="p-1.5 rounded-full hover:bg-blush-100 text-warm-400 hover:text-warm-600 transition-colors cursor-pointer"
+                        >
+                          <Edit3 size={16} />
+                        </button>
+                      )}
                       {canDelete && (
                         isFamilyHead && row.familyId ? (
                           <button

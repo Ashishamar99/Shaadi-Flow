@@ -137,3 +137,34 @@ export function nearestNeighborOrder(
 
   return ordered;
 }
+
+/**
+ * Estimates optimal number of days based on geographic spread.
+ * Nearby invitees (within ~15km) are grouped together.
+ */
+export function estimateOptimalDays(invitees: Invitee[]): number {
+  const located = invitees.filter((inv) => inv.lat != null && inv.lng != null);
+  if (located.length <= 1) return 1;
+
+  const CLUSTER_RADIUS_KM = 15;
+  const assigned = new Set<number>();
+  let groups = 0;
+
+  for (let i = 0; i < located.length; i++) {
+    if (assigned.has(i)) continue;
+    groups++;
+    assigned.add(i);
+    for (let j = i + 1; j < located.length; j++) {
+      if (assigned.has(j)) continue;
+      const d = distance(
+        [located[i].lat!, located[i].lng!],
+        [located[j].lat!, located[j].lng!],
+      );
+      if (d <= CLUSTER_RADIUS_KM) {
+        assigned.add(j);
+      }
+    }
+  }
+
+  return Math.max(1, groups);
+}
