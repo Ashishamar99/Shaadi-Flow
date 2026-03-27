@@ -24,6 +24,7 @@ import {
   Clock,
   FileDown,
   UsersRound,
+  Tag,
 } from 'lucide-react';
 
 export function InviteesPage() {
@@ -58,12 +59,19 @@ export function InviteesPage() {
   const [filterCreatedBy, setFilterCreatedBy] = useState('');
   const [filterHeadcount, setFilterHeadcount] = useState('');
   const [filterEvent, setFilterEvent] = useState('');
+  const [showTags, setShowTags] = useState(false);
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'az' | 'za'>('newest');
 
   const visibleInvitees = useMemo(
     () => invitees.filter((inv) => !hiddenKeys.has(inv.family_id ? `family:${inv.family_id}` : `invitee:${inv.id}`)),
     [invitees, hiddenKeys],
   );
+
+  const allTags = useMemo(() => {
+    const tags = new Set<string>();
+    visibleInvitees.forEach((inv) => inv.tags?.forEach((t) => tags.add(t)));
+    return Array.from(tags).sort();
+  }, [visibleInvitees]);
 
   const creators = useMemo(() => {
     const names = new Set<string>();
@@ -100,7 +108,8 @@ export function InviteesPage() {
           inv.name.toLowerCase().includes(q) ||
           inv.address?.toLowerCase().includes(q) ||
           inv.phone?.includes(q) ||
-          getEffective(inv).address?.toLowerCase().includes(q),
+          getEffective(inv).address?.toLowerCase().includes(q) ||
+          getEffective(inv).tags?.some((t) => t.toLowerCase().includes(q)),
       );
     }
     if (filterRsvp) {
@@ -310,6 +319,14 @@ export function InviteesPage() {
         </div>
         <div className="flex gap-2">
           <Button
+            variant={showTags ? 'secondary' : 'ghost'}
+            size="sm"
+            icon={<Tag size={16} />}
+            onClick={() => setShowTags(!showTags)}
+          >
+            Tags
+          </Button>
+          <Button
             variant="ghost"
             size="sm"
             icon={<Upload size={16} />}
@@ -514,6 +531,7 @@ export function InviteesPage() {
           onToggleVisited={handleToggleVisited}
           canDelete={canDelete}
           isAdminOrOwner={isAdminOrOwner}
+          showTags={showTags}
         />
       )}
 
@@ -523,6 +541,7 @@ export function InviteesPage() {
         onSubmit={handleAddGuest}
         onSubmitFamily={handleAddFamily}
         loading={addInvitee.isPending || addFamily.isPending}
+        allTags={allTags}
       />
 
       <InviteeForm
@@ -531,6 +550,7 @@ export function InviteesPage() {
         onSubmit={handleEditGuest}
         initialData={editingInvitee}
         loading={updateInvitee.isPending}
+        allTags={allTags}
       />
 
       <CSVImport

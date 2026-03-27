@@ -23,6 +23,7 @@ interface InviteeTableProps {
   onToggleVisited: (invitee: Invitee) => void;
   canDelete?: boolean;
   isAdminOrOwner?: boolean;
+  showTags?: boolean;
 }
 
 interface DisplayRow {
@@ -42,6 +43,7 @@ export function InviteeTable({
   onToggleVisited,
   canDelete = true,
   isAdminOrOwner = false,
+  showTags = false,
 }: InviteeTableProps) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteFamilyId, setDeleteFamilyId] = useState<string | null>(null);
@@ -151,6 +153,11 @@ export function InviteeTable({
               <th className="text-left px-4 py-3 text-xs font-semibold text-warm-400 uppercase tracking-wider hidden lg:table-cell">
                 Priority
               </th>
+              {showTags && (
+                <th className="text-left px-4 py-3 text-xs font-semibold text-warm-400 uppercase tracking-wider hidden md:table-cell">
+                  Tags
+                </th>
+              )}
               <th className="text-left px-4 py-3 text-xs font-semibold text-warm-400 uppercase tracking-wider hidden xl:table-cell">
                 Events
               </th>
@@ -270,6 +277,19 @@ export function InviteeTable({
                   <td className="px-4 py-3 hidden lg:table-cell">
                     <PriorityBadge priority={inv.priority} />
                   </td>
+                  {showTags && (
+                    <td className="px-4 py-3 hidden md:table-cell">
+                      {!isFamilyMember && inv.tags && inv.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {inv.tags.map((tag) => (
+                            <span key={tag} className="text-[10px] bg-warm-100 text-warm-500 px-1.5 py-0.5 rounded-pill">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+                  )}
                   <td className="px-4 py-3 hidden xl:table-cell">
                     {!isFamilyMember && (
                       <div className="flex gap-1">

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { X, Plus } from 'lucide-react';
 
 const PRESET_TAGS = [
@@ -16,9 +16,10 @@ interface TagInputProps {
   value: string[];
   onChange: (tags: string[]) => void;
   label?: string;
+  extraPresets?: string[];
 }
 
-export function TagInput({ value, onChange, label }: TagInputProps) {
+export function TagInput({ value, onChange, label, extraPresets }: TagInputProps) {
   const [input, setInput] = useState('');
   const [showPresets, setShowPresets] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -45,7 +46,12 @@ export function TagInput({ value, onChange, label }: TagInputProps) {
     }
   };
 
-  const unusedPresets = PRESET_TAGS.filter(
+  const allPresets = useMemo(() => {
+    const combined = new Set([...PRESET_TAGS, ...(extraPresets ?? [])]);
+    return Array.from(combined).sort();
+  }, [extraPresets]);
+
+  const unusedPresets = allPresets.filter(
     (p) => !value.some((v) => v.toLowerCase() === p.toLowerCase()),
   );
 

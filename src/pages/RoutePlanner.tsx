@@ -27,6 +27,7 @@ import {
   Save,
   FolderOpen,
   AlertTriangle,
+  Trash2,
 } from 'lucide-react';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || '';
@@ -846,8 +847,9 @@ export function RoutePlannerPage() {
                 <button
                   onClick={() => handleDeleteSavedRoute(sr.id)}
                   className="p-1.5 rounded-full hover:bg-red-50 text-warm-400 hover:text-red-500 transition-colors cursor-pointer"
+                  title="Delete saved route"
                 >
-                  <RotateCcw size={14} />
+                  <Trash2 size={14} />
                 </button>
               </div>
             );

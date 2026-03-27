@@ -22,6 +22,7 @@ interface InviteeFormProps {
   }) => void;
   initialData?: Invitee | null;
   loading?: boolean;
+  allTags?: string[];
 }
 
 const sideOptions = [
@@ -51,6 +52,7 @@ export function InviteeForm({
   onSubmitFamily,
   initialData,
   loading,
+  allTags,
 }: InviteeFormProps) {
   const [mode, setMode] = useState<'single' | 'family'>('single');
   const [form, setForm] = useState({
@@ -317,7 +319,7 @@ export function InviteeForm({
               <input
                 type="number"
                 min={0}
-                max={50}
+                max={999}
                 value={extraCount || ''}
                 onChange={(e) => setExtraCount(Math.max(0, parseInt(e.target.value) || 0))}
                 className="w-20 rounded-pill border border-blush-200 bg-white px-3 py-1.5 text-sm text-warm-700 text-center focus:outline-none focus:ring-2 focus:ring-blush-300"
@@ -373,7 +375,7 @@ export function InviteeForm({
                 <input
                   type="number"
                   min={0}
-                  max={50}
+                  max={999}
                   value={extraCount}
                   onChange={(e) => setExtraCount(Math.max(0, parseInt(e.target.value) || 0))}
                   className="w-20 rounded-pill border border-blush-200 bg-white px-3 py-1.5 text-sm text-warm-700 text-center focus:outline-none focus:ring-2 focus:ring-blush-300"
@@ -491,6 +493,7 @@ export function InviteeForm({
           label="Tags"
           value={tagsArray}
           onChange={setTagsArray}
+          extraPresets={allTags}
         />
 
         <Textarea
