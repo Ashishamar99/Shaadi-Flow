@@ -24,6 +24,7 @@ export function LoginPage() {
     try {
       setError(null);
       setSuccessMsg(null);
+      sessionStorage.setItem('post_auth_path', `${window.location.pathname}${window.location.search}`);
       await signInWithGoogle();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign in');

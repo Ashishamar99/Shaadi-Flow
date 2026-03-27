@@ -62,7 +62,7 @@ export function MembersPage() {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState('');
   const [inviteSuccess, setInviteSuccess] = useState('');
-  const { pending: undoPending, scheduleDelete, undo, undoWindowMs } = useUndoDelete();
+  const { pending: undoPending, scheduleDelete, undo, undoWindowMs, hiddenKeys } = useUndoDelete();
   const [copied, setCopied] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
@@ -349,11 +349,11 @@ export function MembersPage() {
       <Card>
         <h2 className="text-lg font-bold text-warm-700 flex items-center gap-2 mb-4">
           <Shield size={20} />
-          Members ({members.length + 1})
+          Members ({members.filter((m) => !hiddenKeys.has(`member:${m.id}`)).length})
         </h2>
 
         <div className="space-y-3">
-          {members.map((member) => {
+          {members.filter((member) => !hiddenKeys.has(`member:${member.id}`)).map((member) => {
               const isMe = member.user_id === user?.id;
               const memberIsOwner = member.user_id === wedding?.user_id;
               const config = roleConfig[member.role];
@@ -407,7 +407,8 @@ export function MembersPage() {
                           async () => {
                             await supabase.from('wedding_members').delete().eq('id', member.id);
                             fetchMembers();
-                          }
+                          },
+                          `member:${member.id}`
                         )}
                         className="p-1.5 rounded-full hover:bg-red-50 text-warm-400 hover:text-red-500 transition-colors cursor-pointer"
                       >
@@ -424,7 +425,7 @@ export function MembersPage() {
               );
           })}
 
-          {members.length <= 1 && (
+          {members.filter((m) => !hiddenKeys.has(`member:${m.id}`)).length <= 1 && (
             <EmptyState
               icon={<Users size={36} />}
               title="Just you for now"

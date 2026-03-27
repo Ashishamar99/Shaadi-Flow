@@ -17,9 +17,17 @@ export function useAuth() {
       setUser(session?.user ?? null);
       setLoading(false);
 
-      // Clean up the URL hash after the token has been consumed
-      if (event === 'SIGNED_IN' && window.location.hash.includes('access_token')) {
-        window.history.replaceState(null, '', window.location.pathname);
+      if (event === 'SIGNED_IN') {
+        const target = sessionStorage.getItem('post_auth_path');
+        if (target && target !== `${window.location.pathname}${window.location.search}`) {
+          sessionStorage.removeItem('post_auth_path');
+          window.location.replace(target);
+          return;
+        }
+
+        if (window.location.hash.includes('access_token')) {
+          window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+        }
       }
     });
 
@@ -30,7 +38,7 @@ export function useAuth() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin,
+        redirectTo: `${window.location.origin}${window.location.pathname}${window.location.search}`,
       },
     });
     if (error) throw error;
@@ -49,7 +57,7 @@ export function useAuth() {
       email,
       password,
       options: {
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: `${window.location.origin}${window.location.pathname}${window.location.search}`,
       },
     });
     if (error) throw error;

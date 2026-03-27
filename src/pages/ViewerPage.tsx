@@ -26,8 +26,13 @@ async function shareScheduleAsImage(weddingName: string) {
   const el = document.getElementById('viewer-schedule');
   if (!el) return;
 
+  const hiddenEls = el.querySelectorAll('.emoji-reactions-hide');
+  hiddenEls.forEach((e) => (e as HTMLElement).style.display = 'none');
+
   const { toPng } = await import('html-to-image');
   const dataUrl = await toPng(el, { quality: 0.95, backgroundColor: '#FFF9F9' });
+
+  hiddenEls.forEach((e) => (e as HTMLElement).style.display = '');
   const blob = await (await fetch(dataUrl)).blob();
   const file = new File([blob], `${weddingName}-schedule.png`, { type: 'image/png' });
 
@@ -492,6 +497,8 @@ export function ViewerPage({ wedding, isPreview, onExitPreview }: ViewerPageProp
           </div>
         </div>
 
+        <ViewerRsvpForm weddingId={wedding.id} isPreview={isPreview} />
+
         <div id="viewer-schedule">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-warm-700 flex items-center gap-2">
@@ -552,7 +559,9 @@ export function ViewerPage({ wedding, isPreview, onExitPreview }: ViewerPageProp
                                   </span>
                                 )}
                               </div>
-                              <EmojiReactions eventId={ev.id} guestCount={guestCount} />
+                              <div className="emoji-reactions-hide">
+                                <EmojiReactions eventId={ev.id} guestCount={guestCount} />
+                              </div>
                             </div>
                           </div>
                         </Card>
@@ -564,8 +573,6 @@ export function ViewerPage({ wedding, isPreview, onExitPreview }: ViewerPageProp
             </div>
           )}
         </div>
-
-        <ViewerRsvpForm weddingId={wedding.id} isPreview={isPreview} />
 
         {!isPreview && (
           <p className="text-center text-xs text-warm-300 pb-8">

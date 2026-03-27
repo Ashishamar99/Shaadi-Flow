@@ -44,7 +44,7 @@ export function InviteesPage() {
     bulkInsert,
   } = useInvitees(wedding?.id, user?.id, displayName);
 
-  const { pending: undoPending, scheduleDelete, undo, undoWindowMs } = useUndoDelete();
+  const { pending: undoPending, scheduleDelete, undo, undoWindowMs, hiddenKeys } = useUndoDelete();
 
   const [showForm, setShowForm] = useState(false);
   const [editingInvitee, setEditingInvitee] = useState<Invitee | null>(null);
@@ -56,16 +56,21 @@ export function InviteesPage() {
   const [filterCreatedBy, setFilterCreatedBy] = useState('');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'az' | 'za'>('newest');
 
+  const visibleInvitees = useMemo(
+    () => invitees.filter((inv) => !hiddenKeys.has(inv.family_id ? `family:${inv.family_id}` : `invitee:${inv.id}`)),
+    [invitees, hiddenKeys],
+  );
+
   const creators = useMemo(() => {
     const names = new Set<string>();
-    invitees.forEach((inv) => {
+    visibleInvitees.forEach((inv) => {
       if (inv.created_by_name) names.add(inv.created_by_name);
     });
     return Array.from(names).sort();
-  }, [invitees]);
+  }, [visibleInvitees]);
 
   const filtered = useMemo(() => {
-    let result = invitees;
+    let result = visibleInvitees;
 
     if (search) {
       const q = search.toLowerCase();
@@ -99,33 +104,33 @@ export function InviteesPage() {
     });
 
     return result;
-  }, [invitees, search, filterRsvp, filterSide, filterPriority, filterCreatedBy, sortBy]);
+  }, [visibleInvitees, search, filterRsvp, filterSide, filterPriority, filterCreatedBy, sortBy]);
 
   const stats = useMemo(() => {
-    const rows = invitees.length;
-    const headcount = invitees.reduce(
+    const rows = visibleInvitees.length;
+    const headcount = visibleInvitees.reduce(
       (sum, inv) => sum + 1 + (inv.is_family_head ? inv.extra_members : 0),
       0,
     );
     // Visits = solo guests + unique families (family_id groups count as 1 visit)
     const familyIds = new Set(
-      invitees.filter((i) => i.family_id).map((i) => i.family_id),
+      visibleInvitees.filter((i) => i.family_id).map((i) => i.family_id),
     );
-    const soloCount = invitees.filter((i) => !i.family_id).length;
+    const soloCount = visibleInvitees.filter((i) => !i.family_id).length;
     const visits = soloCount + familyIds.size;
 
-    const confirmed = invitees.filter(
+    const confirmed = visibleInvitees.filter(
       (i) => i.rsvp_status === 'confirmed' && (i.is_family_head || !i.family_id),
     ).length;
-    const pending = invitees.filter(
+    const pending = visibleInvitees.filter(
       (i) => i.rsvp_status === 'pending' && (i.is_family_head || !i.family_id),
     ).length;
-    const visited = invitees.filter(
+    const visited = visibleInvitees.filter(
       (i) => i.visited && (i.is_family_head || !i.family_id),
     ).length;
 
     return { rows, headcount, visits, confirmed, visited, pending };
-  }, [invitees]);
+  }, [visibleInvitees]);
 
   const handleAddGuest = (data: Partial<Invitee>) => {
     addInvitee.mutate(data, { onSuccess: () => setShowForm(false) });
@@ -226,7 +231,7 @@ export function InviteesPage() {
             variant="ghost"
             size="sm"
             icon={<FileDown size={16} />}
-            disabled={invitees.length === 0}
+            disabled={visibleInvitees.length === 0}
             onClick={() =>
               exportToCSV(inviteesToExportData(filtered), 'wedding-guests')
             }
@@ -371,13 +376,13 @@ export function InviteesPage() {
           />
           {(search || filterRsvp || filterSide || filterPriority || filterCreatedBy) && (
             <Badge variant="blush">
-              {filtered.length} of {invitees.length}
+              {filtered.length} of {visibleInvitees.length}
             </Badge>
           )}
         </div>
       </Card>
 
-      {invitees.length === 0 ? (
+      {visibleInvitees.length === 0 ? (
         <EmptyState
           icon={<Users size={48} />}
           title="No guests yet"
@@ -397,11 +402,11 @@ export function InviteesPage() {
           onEdit={(inv) => setEditingInvitee(inv)}
           onDelete={(id) => {
             const inv = invitees.find((i) => i.id === id);
-            scheduleDelete(inv?.name ?? 'Guest', () => deleteInvitee.mutate(id));
+            scheduleDelete(inv?.name ?? 'Guest', () => deleteInvitee.mutate(id), `invitee:${id}`);
           }}
           onDeleteFamily={(fid) => {
             const head = invitees.find((i) => i.family_id === fid && i.is_family_head);
-            scheduleDelete(head?.name ? `${head.name} & family` : 'Family', () => deleteFamily.mutate(fid));
+            scheduleDelete(head?.name ? `${head.name} & family` : 'Family', () => deleteFamily.mutate(fid), `family:${fid}`);
           }}
           onToggleVisited={handleToggleVisited}
           canDelete={canDelete}

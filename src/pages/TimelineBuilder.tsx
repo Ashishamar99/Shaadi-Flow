@@ -296,7 +296,7 @@ export function TimelineBuilderPage() {
   const [showEventForm, setShowEventForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState<TimelineEvent | null>(null);
   const [activeDay, setActiveDay] = useState(1);
-  const { pending: undoPending, scheduleDelete, undo, undoWindowMs } = useUndoDelete();
+  const { pending: undoPending, scheduleDelete, undo, undoWindowMs, hiddenKeys } = useUndoDelete();
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -382,6 +382,30 @@ export function TimelineBuilderPage() {
     );
   };
 
+  const visibleEvents = useMemo(
+    () => events.filter((ev) => !hiddenKeys.has(`event:${ev.id}`)),
+    [events, hiddenKeys],
+  );
+
+  const visibleEventsByDay = useMemo(() => {
+    const grouped: Record<number, TimelineEvent[]> = {};
+    for (const d of allDayNumbers) grouped[d] = [];
+    visibleEvents.forEach((ev) => {
+      const day = ev.day_number;
+      if (!grouped[day]) grouped[day] = [];
+      grouped[day].push(ev);
+    });
+    for (const day in grouped) {
+      grouped[day].sort((a, b) => {
+        if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
+        return new Date(a.start_time).getTime() - new Date(b.start_time).getTime();
+      });
+    }
+    return grouped;
+  }, [visibleEvents, allDayNumbers]);
+
+  const currentDayEvents = visibleEventsByDay[activeDay] ?? [];
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -389,8 +413,6 @@ export function TimelineBuilderPage() {
       </div>
     );
   }
-
-  const currentDayEvents = eventsByDay[activeDay] ?? [];
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -407,7 +429,7 @@ export function TimelineBuilderPage() {
             size="sm"
             icon={<Image size={16} />}
             onClick={() => exportElementAsImage('timeline-grid', 'wedding-timeline')}
-            disabled={events.length === 0}
+            disabled={visibleEvents.length === 0}
           >
             Export Image
           </Button>
@@ -418,7 +440,7 @@ export function TimelineBuilderPage() {
             onClick={() =>
               exportToCSV(eventsToExportData(events), 'wedding-timeline')
             }
-            disabled={events.length === 0}
+            disabled={visibleEvents.length === 0}
           >
             Export CSV
           </Button>
@@ -470,7 +492,7 @@ export function TimelineBuilderPage() {
       <div className="flex gap-2 flex-wrap">
         {allDayNumbers.map((day) => {
           const label = day <= 0 ? `Day ${day}` : `Day ${day}`;
-          const count = eventsByDay[day]?.length ?? 0;
+          const count = visibleEventsByDay[day]?.length ?? 0;
           return (
             <button
               key={day}
@@ -548,7 +570,7 @@ export function TimelineBuilderPage() {
                       event={event}
                       hasConflict={conflicts.has(event.id)}
                       onEdit={() => setEditingEvent(event)}
-                      onDelete={() => scheduleDelete(event.title, () => deleteEvent.mutate(event.id))}
+                      onDelete={() => scheduleDelete(event.title, () => deleteEvent.mutate(event.id), `event:${event.id}`)}
                       canDelete={canDelete}
                     />
                   ))}
