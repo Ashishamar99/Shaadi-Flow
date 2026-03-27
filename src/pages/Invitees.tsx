@@ -73,8 +73,25 @@ export function InviteesPage() {
     return Array.from(names).sort();
   }, [visibleInvitees]);
 
+  // Build a map of family_id -> head invitee for inherited filters
+  const familyHeadMap = useMemo(() => {
+    const map = new Map<string, Invitee>();
+    visibleInvitees.forEach((inv) => {
+      if (inv.family_id && inv.is_family_head) map.set(inv.family_id, inv);
+    });
+    return map;
+  }, [visibleInvitees]);
+
   const filtered = useMemo(() => {
     let result = visibleInvitees;
+
+    // For family members, resolve the head for inherited attributes
+    const getEffective = (inv: Invitee) => {
+      if (inv.family_id && !inv.is_family_head) {
+        return familyHeadMap.get(inv.family_id) ?? inv;
+      }
+      return inv;
+    };
 
     if (search) {
       const q = search.toLowerCase();
@@ -82,34 +99,39 @@ export function InviteesPage() {
         (inv) =>
           inv.name.toLowerCase().includes(q) ||
           inv.address?.toLowerCase().includes(q) ||
-          inv.phone?.includes(q),
+          inv.phone?.includes(q) ||
+          getEffective(inv).address?.toLowerCase().includes(q),
       );
     }
     if (filterRsvp) {
-      result = result.filter((inv) => inv.rsvp_status === filterRsvp);
+      result = result.filter((inv) => getEffective(inv).rsvp_status === filterRsvp);
     }
     if (filterSide) {
-      result = result.filter((inv) => inv.side === filterSide);
+      result = result.filter((inv) => getEffective(inv).side === filterSide);
     }
     if (filterPriority) {
-      result = result.filter((inv) => inv.priority === filterPriority);
+      result = result.filter((inv) => getEffective(inv).priority === filterPriority);
     }
     if (filterCreatedBy) {
-      result = result.filter((inv) => inv.created_by_name === filterCreatedBy);
+      result = result.filter((inv) => getEffective(inv).created_by_name === filterCreatedBy);
     }
     if (filterHeadcount) {
       const hc = parseInt(filterHeadcount);
       result = result.filter((inv) => {
-        const total = 1 + (inv.extra_members || 0);
+        const eff = getEffective(inv);
+        const total = 1 + (eff.extra_members || 0);
         return hc >= 5 ? total >= 5 : total === hc;
       });
     }
     if (filterEvent === 'reception') {
-      result = result.filter((inv) => inv.attending_reception);
+      result = result.filter((inv) => getEffective(inv).attending_reception);
     } else if (filterEvent === 'muhurtham') {
-      result = result.filter((inv) => inv.attending_muhurtham);
+      result = result.filter((inv) => getEffective(inv).attending_muhurtham);
     } else if (filterEvent === 'both') {
-      result = result.filter((inv) => inv.attending_reception && inv.attending_muhurtham);
+      result = result.filter((inv) => {
+        const eff = getEffective(inv);
+        return eff.attending_reception && eff.attending_muhurtham;
+      });
     }
 
     result = [...result].sort((a, b) => {
@@ -125,25 +147,67 @@ export function InviteesPage() {
   }, [visibleInvitees, search, filterRsvp, filterSide, filterPriority, filterCreatedBy, filterHeadcount, filterEvent, sortBy]);
 
   const stats = useMemo(() => {
-    const headcount = filtered.reduce(
-      (sum, inv) => sum + 1 + (inv.is_family_head ? inv.extra_members : 0),
+    const heads = filtered.filter((i) => i.is_family_head || !i.family_id);
+    const members = filtered.filter((i) => i.family_id && !i.is_family_head);
+
+    const shouldHalve = filterEvent === 'reception' || filterEvent === 'muhurtham';
+
+    const headcount = heads.reduce(
+      (sum, inv) => {
+        const total = 1 + (inv.extra_members || 0);
+        return sum + (inv.half_and_half && shouldHalve ? Math.ceil(total / 2) : total);
+      },
+      0,
+    ) + members.reduce(
+      (sum, m) => {
+        const head = m.family_id ? familyHeadMap.get(m.family_id) : null;
+        return sum + (head?.half_and_half && shouldHalve ? 0 : 1);
+      },
       0,
     );
+
     const familyIds = new Set(
       filtered.filter((i) => i.family_id).map((i) => i.family_id),
     );
     const soloCount = filtered.filter((i) => !i.family_id).length;
     const visits = soloCount + familyIds.size;
 
-    const confirmed = filtered.filter(
-      (i) => i.rsvp_status === 'confirmed' && (i.is_family_head || !i.family_id),
-    ).length;
-    const pending = filtered.filter(
-      (i) => i.rsvp_status === 'pending' && (i.is_family_head || !i.family_id),
-    ).length;
-    const visited = filtered.filter(
-      (i) => i.visited && (i.is_family_head || !i.family_id),
-    ).length;
+    const confirmed = heads.filter((i) => i.rsvp_status === 'confirmed').length;
+    const pending = heads.filter((i) => i.rsvp_status === 'pending').length;
+    const visited = heads.filter((i) => i.visited).length;
+
+    const familyMemberCounts = new Map<string, number>();
+    members.forEach((m) => {
+      if (m.family_id) familyMemberCounts.set(m.family_id, (familyMemberCounts.get(m.family_id) || 0) + 1);
+    });
+
+    console.log('[Guest Book KPIs]', {
+      filteredRows: filtered.length,
+      heads: heads.length,
+      namedMembers: members.length,
+      headcount,
+      visits,
+      confirmed,
+      pending,
+      visited,
+      breakdown: heads.map((h) => {
+        const namedMembers = h.family_id ? (familyMemberCounts.get(h.family_id) || 0) : 0;
+        const fullTotal = 1 + (h.extra_members || 0) + namedMembers;
+        const effectiveTotal = h.half_and_half ? Math.ceil(fullTotal / 2) : fullTotal;
+        return {
+          name: h.name,
+          unnamed: h.extra_members || 0,
+          namedMembers,
+          fullTotal,
+          effectiveTotal,
+          halfHalf: h.half_and_half,
+          rsvp: h.rsvp_status,
+          visited: h.visited,
+          reception: h.attending_reception,
+          muhurtham: h.attending_muhurtham,
+        };
+      }),
+    });
 
     return { headcount, visits, confirmed, visited, pending };
   }, [filtered]);

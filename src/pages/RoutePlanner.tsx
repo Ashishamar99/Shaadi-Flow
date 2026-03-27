@@ -26,6 +26,7 @@ import {
   RotateCcw,
   Save,
   FolderOpen,
+  AlertTriangle,
 } from 'lucide-react';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || '';
@@ -66,7 +67,7 @@ export function RoutePlannerPage() {
     return Math.max(1, diff);
   }, [wedding?.wedding_date]);
 
-  // Exclude visited and RSVP entries (created_by = viewer self-added)
+  // Guests with location, unvisited, family heads / solos only
   const locatedInvitees = useMemo(
     () =>
       invitees.filter(
@@ -74,7 +75,19 @@ export function RoutePlannerPage() {
           inv.lat != null &&
           inv.lng != null &&
           !inv.visited &&
-          !inv.created_by &&
+          (inv.is_family_head || inv.is_family_head === undefined) &&
+          (!inv.family_id || inv.is_family_head),
+      ),
+    [invitees],
+  );
+
+  // Guests without valid location data
+  const unlocatedInvitees = useMemo(
+    () =>
+      invitees.filter(
+        (inv) =>
+          (inv.lat == null || inv.lng == null) &&
+          !inv.visited &&
           (inv.is_family_head || inv.is_family_head === undefined) &&
           (!inv.family_id || inv.is_family_head),
       ),
@@ -401,11 +414,36 @@ export function RoutePlannerPage() {
         </div>
       </div>
 
-      {locatedInvitees.length === 0 ? (
+      {unlocatedInvitees.length > 0 && (
+        <Card padding="sm">
+          <div className="flex items-start gap-3">
+            <AlertTriangle size={18} className="text-amber-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-warm-600">
+                {unlocatedInvitees.length} guest{unlocatedInvitees.length > 1 ? 's' : ''} without location data
+              </p>
+              <p className="text-xs text-warm-400 mt-0.5">
+                {unlocatedInvitees.map((inv) => inv.name).join(', ')}
+              </p>
+              <p className="text-xs text-warm-300 mt-1">
+                Add a Google Maps link or full address in the Guest Book to include them in routes.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {locatedInvitees.length === 0 && unlocatedInvitees.length === 0 ? (
+        <EmptyState
+          icon={<MapPin size={48} />}
+          title="No guests yet"
+          description="Add guests in the Guest Book first."
+        />
+      ) : locatedInvitees.length === 0 ? (
         <EmptyState
           icon={<MapPin size={48} />}
           title="No located guests"
-          description="Add guests with addresses or map links in the Guest Book first. We'll geocode them automatically."
+          description="All guests are missing location data. Add addresses or Google Maps links in the Guest Book."
         />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
