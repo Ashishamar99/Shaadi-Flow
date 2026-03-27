@@ -7,6 +7,7 @@ import { InviteesPage } from '@/pages/Invitees';
 import { RoutePlannerPage } from '@/pages/RoutePlanner';
 import { TimelineBuilderPage } from '@/pages/TimelineBuilder';
 import { MembersPage } from '@/pages/Members';
+import { JoinByLinkPage } from '@/pages/JoinByLink';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,6 +24,7 @@ export default function App() {
       <BrowserRouter>
         <AuthGuard>
           <Routes>
+            <Route path="/join/:spaceId" element={<JoinByLinkPage />} />
             <Route element={<AppShell />}>
               <Route path="/" element={<DashboardPage />} />
               <Route path="/invitees" element={<InviteesPage />} />

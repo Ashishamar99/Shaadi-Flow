@@ -25,6 +25,7 @@ import {
   Settings,
   Pencil,
   Save,
+  Link,
 } from 'lucide-react';
 
 interface MemberRow {
@@ -34,6 +35,7 @@ interface MemberRow {
   created_at: string;
   email?: string;
   display_name?: string;
+  avatar_url?: string;
 }
 
 const roleConfig = {
@@ -45,6 +47,7 @@ const roleConfig = {
 interface MembersContext {
   wedding: Wedding | null;
   user: User | null;
+  role: string;
   updateWedding: (updates: Partial<Wedding>) => Promise<void>;
 }
 
@@ -60,6 +63,7 @@ export function MembersPage() {
   const [inviteSuccess, setInviteSuccess] = useState('');
   const [removeId, setRemoveId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const [editingSpace, setEditingSpace] = useState(false);
   const [spaceName, setSpaceName] = useState('');
@@ -282,48 +286,74 @@ export function MembersPage() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <p className="text-xs text-warm-400 font-semibold mb-1">Name</p>
-              <p className="text-sm text-warm-700 font-medium">{wedding?.name}</p>
-            </div>
-            <div>
-              <p className="text-xs text-warm-400 font-semibold mb-1">Date</p>
-              <p className="text-sm text-warm-700 font-medium">
-                {wedding?.wedding_date
-                  ? new Date(wedding.wedding_date + 'T00:00:00').toLocaleDateString('en-IN', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric',
-                    })
-                  : 'Not set'}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-warm-400 font-semibold mb-1">Budget</p>
-              <p className="text-sm text-warm-700 font-medium">
-                {wedding?.total_budget
-                  ? `₹${wedding.total_budget.toLocaleString('en-IN')}`
-                  : 'Not set'}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-warm-400 font-semibold mb-1">
-                Space ID (for sharing)
-              </p>
-              <div className="flex items-center gap-2">
-                <code className="text-xs bg-blush-50 px-2 py-1 rounded-sm text-warm-500 truncate max-w-[200px]">
-                  {wedding?.id}
-                </code>
-                <button
-                  onClick={handleCopyId}
-                  className="text-warm-400 hover:text-warm-600 transition-colors cursor-pointer"
-                >
-                  {copied ? <Check size={14} className="text-mint-500" /> : <Copy size={14} />}
-                </button>
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-warm-400 font-semibold mb-1">Name</p>
+                <p className="text-sm text-warm-700 font-medium">{wedding?.name}</p>
+              </div>
+              <div>
+                <p className="text-xs text-warm-400 font-semibold mb-1">Date</p>
+                <p className="text-sm text-warm-700 font-medium">
+                  {wedding?.wedding_date
+                    ? new Date(wedding.wedding_date + 'T00:00:00').toLocaleDateString('en-IN', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                      })
+                    : 'Not set'}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-warm-400 font-semibold mb-1">Budget</p>
+                <p className="text-sm text-warm-700 font-medium">
+                  {wedding?.total_budget
+                    ? `₹${wedding.total_budget.toLocaleString('en-IN')}`
+                    : 'Not set'}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-warm-400 font-semibold mb-1">Space ID</p>
+                <div className="flex items-center gap-2">
+                  <code className="text-xs bg-blush-50 px-2 py-1 rounded-sm text-warm-500 truncate max-w-[200px]">
+                    {wedding?.id}
+                  </code>
+                  <button
+                    onClick={handleCopyId}
+                    className="text-warm-400 hover:text-warm-600 transition-colors cursor-pointer"
+                  >
+                    {copied ? <Check size={14} className="text-mint-500" /> : <Copy size={14} />}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+
+            {isAdmin && wedding && (
+              <div className="mt-4 pt-4 border-t border-blush-100">
+                <p className="text-xs text-warm-400 font-semibold mb-2">Invite Link</p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 text-xs bg-blush-50 px-3 py-2 rounded-sm text-warm-500 truncate">
+                    {window.location.origin}/join/{wedding.id}
+                  </code>
+                  <Button
+                    size="sm"
+                    variant={copiedLink ? 'secondary' : 'primary'}
+                    icon={copiedLink ? <Check size={14} /> : <Link size={14} />}
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/join/${wedding.id}`);
+                      setCopiedLink(true);
+                      setTimeout(() => setCopiedLink(false), 2000);
+                    }}
+                  >
+                    {copiedLink ? 'Copied!' : 'Copy Link'}
+                  </Button>
+                </div>
+                <p className="text-xs text-warm-300 mt-1">
+                  Anyone with this link can join as a viewer after signing in.
+                </p>
+              </div>
+            )}
+          </>
         )}
       </Card>
 
@@ -334,64 +364,47 @@ export function MembersPage() {
         </h2>
 
         <div className="space-y-3">
-          {/* Owner row */}
-          <div className="flex items-center gap-4 p-3 rounded-sm bg-blush-50">
-            <Avatar
-              name={user?.user_metadata?.full_name || user?.email || 'Owner'}
-              src={user?.user_metadata?.avatar_url}
-              size="md"
-            />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-warm-700">
-                {user?.user_metadata?.full_name || 'You'}
-                {isOwner && (
-                  <span className="ml-2 text-xs text-warm-400">(you)</span>
-                )}
-              </p>
-              <p className="text-xs text-warm-400 truncate">{user?.email}</p>
-            </div>
-            <Badge variant="blush">
-              <Crown size={12} className="mr-1" />
-              Owner
-            </Badge>
-          </div>
-
-          {members
-            .filter((m) => m.user_id !== user?.id)
-            .map((member) => {
+          {members.map((member) => {
+              const isMe = member.user_id === user?.id;
+              const memberIsOwner = member.user_id === wedding?.user_id;
               const config = roleConfig[member.role];
               const RoleIcon = config.icon;
 
               return (
                 <div
                   key={member.id}
-                  className="flex items-center gap-4 p-3 rounded-sm hover:bg-blush-50 transition-colors"
+                  className={`flex items-center gap-4 p-3 rounded-sm ${isMe ? 'bg-blush-50' : 'hover:bg-blush-50'} transition-colors`}
                 >
                   <Avatar
                     name={member.display_name || member.email || 'Member'}
+                    src={member.avatar_url}
                     size="md"
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-warm-700">
                       {member.display_name || member.email || 'Team Member'}
+                      {isMe && (
+                        <span className="ml-2 text-xs text-warm-400">(you)</span>
+                      )}
                     </p>
                     {isAdmin && member.email && (
-                      <p className="text-xs text-warm-400 truncate">
-                        {member.email}
-                      </p>
+                      <p className="text-xs text-warm-400 truncate">{member.email}</p>
                     )}
                     <p className="text-xs text-warm-300">
                       Added {new Date(member.created_at).toLocaleDateString()}
                     </p>
                   </div>
 
-                  {isAdmin ? (
+                  {memberIsOwner ? (
+                    <Badge variant="blush">
+                      <Crown size={12} className="mr-1" />
+                      Owner
+                    </Badge>
+                  ) : isAdmin && !isMe ? (
                     <div className="flex items-center gap-2">
                       <Select
                         value={member.role}
-                        onChange={(e) =>
-                          handleRoleChange(member.id, e.target.value)
-                        }
+                        onChange={(e) => handleRoleChange(member.id, e.target.value)}
                         options={[
                           { value: 'admin', label: 'Admin' },
                           { value: 'editor', label: 'Editor' },
@@ -414,9 +427,9 @@ export function MembersPage() {
                   )}
                 </div>
               );
-            })}
+          })}
 
-          {members.filter((m) => m.user_id !== user?.id).length === 0 && (
+          {members.length <= 1 && (
             <EmptyState
               icon={<Users size={36} />}
               title="Just you for now"

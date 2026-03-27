@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { supabase } from '@/lib/supabase';
 import type { Wedding, TimelineEvent } from '@/types';
-import { CalendarDays, MapPin, UserCircle, Heart, Moon, Sun, LogOut, X, UserPlus, Plus, Check } from 'lucide-react';
+import { CalendarDays, MapPin, UserCircle, Heart, Moon, Sun, LogOut, X, UserPlus, Check } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
@@ -96,8 +96,6 @@ function EmojiReactions({ eventId, guestCount }: { eventId: string; guestCount: 
 const VIEWER_TAG_OPTIONS = [
   { value: 'Family', label: 'Family' },
   { value: 'Friends', label: 'Friends' },
-  { value: 'Close Family', label: 'Close Family' },
-  { value: 'Extended Family', label: 'Extended Family' },
   { value: 'Work', label: 'Work' },
   { value: 'Neighbors', label: 'Neighbors' },
 ];
@@ -108,67 +106,106 @@ const VIEWER_SIDE_OPTIONS = [
   { value: 'mutual', label: 'Mutual' },
 ];
 
-function ViewerRsvpForm({ weddingId }: { weddingId: string }) {
+function ViewerRsvpForm({ weddingId, isPreview }: { weddingId: string; isPreview?: boolean }) {
   const { user } = useAuth();
-  const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(true);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [existingId, setExistingId] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
 
   const [name, setName] = useState(user?.user_metadata?.full_name || '');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [mapLink, setMapLink] = useState('');
   const [side, setSide] = useState('');
   const [tag, setTag] = useState('');
-  const [familyNames, setFamilyNames] = useState<string[]>([]);
-  const [extraCount, setExtraCount] = useState(0);
+  const [totalPeople, setTotalPeople] = useState(1);
 
   const displayName = user?.user_metadata?.full_name || user?.email || 'Guest';
 
+  useEffect(() => {
+    if (isPreview) { setChecking(false); return; }
+    if (!user?.id) { setChecking(false); return; }
+
+    async function checkExisting() {
+      const { data } = await supabase
+        .from('invitees')
+        .select('*')
+        .eq('wedding_id', weddingId)
+        .eq('created_by', user!.id)
+        .eq('is_family_head', true)
+        .limit(1)
+        .maybeSingle();
+
+      if (data) {
+        setExistingId(data.id);
+        setName(data.name);
+        setPhone(data.phone || '');
+        setAddress(data.address || '');
+        setMapLink(data.map_link || '');
+        setSide(data.side || '');
+        setTag(data.tags?.[0] || '');
+        setTotalPeople(1 + (data.extra_members || 0));
+        setSaved(true);
+      }
+      setChecking(false);
+    }
+    checkExisting();
+  }, [user?.id, weddingId, isPreview]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isPreview) return;
     if (!name.trim()) { setError('Your name is required'); return; }
+    if (!address.trim() && !mapLink.trim()) {
+      setError('Please provide either an address or a Google Maps link');
+      return;
+    }
 
     setLoading(true);
     setError('');
 
     try {
-      const familyId = familyNames.length > 0 || extraCount > 0
-        ? crypto.randomUUID()
-        : null;
-
-      const baseInvitee = {
-        wedding_id: weddingId,
+      const inviteeData = {
         name: name.trim(),
         phone: phone.trim() || null,
         address: address.trim() || null,
-        map_link: null,
+        map_link: mapLink.trim() || null,
         side: (side || null) as 'bride' | 'groom' | 'mutual' | null,
         tags: tag ? [tag] : [],
-        priority: 'normal' as const,
+        extra_members: Math.max(0, totalPeople - 1),
         rsvp_status: 'confirmed' as const,
-        visited: false,
-        family_id: familyId,
-        is_family_head: true,
-        extra_members: extraCount,
-        created_by: user?.id,
-        created_by_name: displayName,
       };
 
-      const rows = [
-        baseInvitee,
-        ...familyNames.filter(Boolean).map((memberName) => ({
-          ...baseInvitee,
-          name: memberName.trim(),
-          is_family_head: false,
-          extra_members: 0,
-        })),
-      ];
+      if (existingId) {
+        const { error: updateErr } = await supabase
+          .from('invitees')
+          .update(inviteeData)
+          .eq('id', existingId);
+        if (updateErr) throw updateErr;
+      } else {
+        const { data, error: insertErr } = await supabase
+          .from('invitees')
+          .insert({
+            ...inviteeData,
+            wedding_id: weddingId,
+            priority: 'normal',
+            visited: false,
+            family_id: null,
+            is_family_head: true,
+            created_by: user?.id,
+            created_by_name: displayName,
+          })
+          .select()
+          .single();
+        if (insertErr) throw insertErr;
+        if (data) setExistingId(data.id);
+      }
 
-      const { error: insertErr } = await supabase.from('invitees').insert(rows);
-      if (insertErr) throw insertErr;
-
-      setSubmitted(true);
+      setSaved(true);
+      setShowForm(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to submit RSVP');
     } finally {
@@ -176,17 +213,28 @@ function ViewerRsvpForm({ weddingId }: { weddingId: string }) {
     }
   };
 
-  if (submitted) {
+  if (checking) return null;
+
+  if (saved && !showForm) {
     return (
       <Card>
-        <div className="text-center py-6">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-mint-100 rounded-full mb-3">
-            <Check size={28} className="text-mint-500" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-mint-100 rounded-full flex items-center justify-center">
+              <Check size={20} className="text-mint-500" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-warm-700">RSVP Confirmed</p>
+              <p className="text-xs text-warm-400">
+                {name} {totalPeople > 1 ? `+ ${totalPeople - 1} (${totalPeople} total)` : ''}
+              </p>
+            </div>
           </div>
-          <h3 className="text-lg font-bold text-warm-700 mb-1">RSVP Confirmed!</h3>
-          <p className="text-sm text-warm-400">
-            Thank you, {name}! We've added you to the guest list.
-          </p>
+          {!isPreview && (
+            <Button size="sm" variant="ghost" onClick={() => setShowForm(true)}>
+              Edit RSVP
+            </Button>
+          )}
         </div>
       </Card>
     );
@@ -208,7 +256,7 @@ function ViewerRsvpForm({ weddingId }: { weddingId: string }) {
 
       {!showForm ? (
         <p className="text-sm text-warm-400">
-          Let the couple know you're coming! Add yourself and your family.
+          Let the couple know you're coming!
         </p>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -234,6 +282,13 @@ function ViewerRsvpForm({ weddingId }: { weddingId: string }) {
             />
           </div>
 
+          <Input
+            label="Google Maps Link"
+            value={mapLink}
+            onChange={(e) => setMapLink(e.target.value)}
+            placeholder="Paste a Google Maps link (optional if address is filled)"
+          />
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Select
               label="Side"
@@ -251,65 +306,41 @@ function ViewerRsvpForm({ weddingId }: { weddingId: string }) {
             />
           </div>
 
-          <div className="p-4 bg-blush-50 rounded-card space-y-3">
-            <p className="text-sm font-semibold text-warm-600">
-              Coming with family?
-            </p>
-
-            {familyNames.map((fn, idx) => (
-              <div key={idx} className="flex items-center gap-2">
-                <Input
-                  value={fn}
-                  onChange={(e) => {
-                    const updated = [...familyNames];
-                    updated[idx] = e.target.value;
-                    setFamilyNames(updated);
-                  }}
-                  placeholder={`Family member ${idx + 1}`}
-                  className="flex-1"
-                />
-                <button
-                  type="button"
-                  onClick={() => setFamilyNames(familyNames.filter((_, i) => i !== idx))}
-                  className="p-2 rounded-full hover:bg-red-50 text-warm-400 hover:text-red-500 cursor-pointer"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-            ))}
-
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              icon={<Plus size={14} />}
-              onClick={() => setFamilyNames([...familyNames, ''])}
-            >
-              Add family member
-            </Button>
-
-            <div className="flex items-center gap-3 border-t border-blush-200 pt-3">
-              <label className="text-xs font-semibold text-warm-500 whitespace-nowrap">
-                Additional members:
+          <div className="p-4 bg-blush-50 rounded-card">
+            <div className="flex items-center gap-3">
+              <label className="text-sm font-semibold text-warm-600">
+                Total people (including you):
               </label>
               <input
                 type="number"
-                min={0}
+                min={1}
                 max={20}
-                value={extraCount}
-                onChange={(e) => setExtraCount(Math.max(0, parseInt(e.target.value) || 0))}
+                value={totalPeople}
+                onChange={(e) => setTotalPeople(Math.max(1, parseInt(e.target.value) || 1))}
                 className="w-20 rounded-pill border border-blush-200 bg-white px-3 py-1.5 text-sm text-warm-700 text-center focus:outline-none focus:ring-2 focus:ring-blush-300"
               />
             </div>
+            {totalPeople > 1 && (
+              <p className="text-xs text-warm-400 mt-1">
+                You + {totalPeople - 1} family member{totalPeople > 2 ? 's' : ''}
+              </p>
+            )}
           </div>
 
           {error && (
             <p className="text-sm text-red-500 bg-red-50 px-4 py-2 rounded-sm">{error}</p>
           )}
 
-          <Button type="submit" size="lg" className="w-full" loading={loading}>
-            Confirm RSVP ({1 + familyNames.filter(Boolean).length + extraCount} people)
-          </Button>
+          <div className="flex gap-3">
+            <Button type="submit" size="lg" className="flex-1" loading={loading} disabled={isPreview}>
+              {existingId ? 'Update RSVP' : `Confirm RSVP (${totalPeople})`}
+            </Button>
+            {showForm && existingId && (
+              <Button type="button" variant="ghost" size="lg" onClick={() => setShowForm(false)}>
+                Cancel
+              </Button>
+            )}
+          </div>
         </form>
       )}
     </Card>
@@ -490,9 +521,7 @@ export function ViewerPage({ wedding, isPreview, onExitPreview }: ViewerPageProp
           )}
         </div>
 
-        {!isPreview && (
-          <ViewerRsvpForm weddingId={wedding.id} />
-        )}
+        <ViewerRsvpForm weddingId={wedding.id} isPreview={isPreview} />
 
         {!isPreview && (
           <p className="text-center text-xs text-warm-300 pb-8">
