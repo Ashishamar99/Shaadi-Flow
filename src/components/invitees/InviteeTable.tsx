@@ -214,15 +214,15 @@ export function InviteeTable({
                           {inv.name}
                         </p>
                         {isFamilyHead && row.memberCount > 0 && (
-                          <Badge variant="blush">
+                          <Badge variant={inv.half_and_half ? 'amber' : 'blush'}>
                             <Users size={10} className="mr-1" />
-                            {row.headcount}
+                            {row.headcount}{inv.half_and_half ? ' ½' : ''}
                           </Badge>
                         )}
                         {!isFamilyHead && !isFamilyMember && row.headcount > 1 && (
-                          <Badge variant="mint">
+                          <Badge variant={inv.half_and_half ? 'amber' : 'mint'}>
                             <UserCheck size={10} className="mr-1" />
-                            {row.headcount}
+                            {row.headcount}{inv.half_and_half ? ' ½' : ''}
                           </Badge>
                         )}
                       </div>
@@ -274,10 +274,14 @@ export function InviteeTable({
                     {!isFamilyMember && (
                       <div className="flex gap-1">
                         {inv.attending_muhurtham && (
-                          <span className="text-[10px] bg-blush-100 text-blush-600 px-1.5 py-0.5 rounded-pill font-semibold">M</span>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-pill font-semibold ${inv.half_and_half ? 'bg-amber-50 text-amber-600' : 'bg-blush-100 text-blush-600'}`}>
+                            M{inv.half_and_half ? '½' : ''}
+                          </span>
                         )}
                         {inv.attending_reception && (
-                          <span className="text-[10px] bg-mint-100 text-mint-600 px-1.5 py-0.5 rounded-pill font-semibold">R</span>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-pill font-semibold ${inv.half_and_half ? 'bg-amber-50 text-amber-600' : 'bg-mint-100 text-mint-600'}`}>
+                            R{inv.half_and_half ? '½' : ''}
+                          </span>
                         )}
                       </div>
                     )}
