@@ -22,7 +22,7 @@ function formatEventTime(timeStr: string): string {
   return `${h12.toString().padStart(2, '0')}:${m} ${ampm}`;
 }
 
-async function shareScheduleAsImage(weddingName: string) {
+async function shareScheduleAsImage(weddingName: string, weddingId: string) {
   const el = document.getElementById('viewer-schedule');
   if (!el) return;
 
@@ -36,9 +36,13 @@ async function shareScheduleAsImage(weddingName: string) {
   const blob = await (await fetch(dataUrl)).blob();
   const file = new File([blob], `${weddingName}-schedule.png`, { type: 'image/png' });
 
+  const joinLink = `${window.location.origin}/join/${weddingId}`;
+  const message = `You're invited to ${weddingName}! 💍✨\n\nCheck out the schedule and RSVP here:\n${joinLink}\n\nWe'd love to have you celebrate with us! 🎊`;
+
   if (navigator.share && navigator.canShare?.({ files: [file] })) {
     await navigator.share({
-      title: `${weddingName} - Schedule`,
+      title: `${weddingName} - You're Invited!`,
+      text: message,
       files: [file],
     });
   } else {
@@ -543,7 +547,7 @@ export function ViewerPage({ wedding, isPreview, onExitPreview }: ViewerPageProp
                 size="sm"
                 variant="ghost"
                 icon={'share' in navigator ? <Share2 size={14} /> : <Download size={14} />}
-                onClick={() => shareScheduleAsImage(wedding.name)}
+                onClick={() => shareScheduleAsImage(wedding.name, wedding.id)}
               >
                 {'share' in navigator ? 'Share' : 'Save Image'}
               </Button>

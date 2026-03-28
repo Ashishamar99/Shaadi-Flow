@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Settings,
+  Store,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -16,6 +17,7 @@ const navItems = [
   { to: '/invitees', icon: Users, label: 'Guest Book' },
   { to: '/routes', icon: MapPin, label: 'Route Planner' },
   { to: '/timeline', icon: CalendarDays, label: 'Timeline' },
+  { to: '/vendors', icon: Store, label: 'Vendors' },
 ];
 
 interface SidebarProps {

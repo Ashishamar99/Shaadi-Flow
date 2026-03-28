@@ -70,6 +70,27 @@ export interface Vendor {
   created_at: string;
 }
 
+export interface VendorPayment {
+  id: string;
+  vendor_id: string;
+  amount: number;
+  type: 'advance' | 'installment' | 'final' | 'other';
+  notes: string | null;
+  payment_date: string;
+  receipt_path: string | null;
+  created_at: string;
+}
+
+export interface VendorAttachment {
+  id: string;
+  vendor_id: string;
+  file_name: string;
+  file_path: string;
+  file_type: string | null;
+  file_size: number;
+  created_at: string;
+}
+
 export interface BudgetItem {
   id: string;
   wedding_id: string;

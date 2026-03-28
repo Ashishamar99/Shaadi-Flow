@@ -7,6 +7,7 @@ import { InviteesPage } from '@/pages/Invitees';
 import { RoutePlannerPage } from '@/pages/RoutePlanner';
 import { TimelineBuilderPage } from '@/pages/TimelineBuilder';
 import { MembersPage } from '@/pages/Members';
+import { VendorsPage } from '@/pages/Vendors';
 import { JoinByLinkPage } from '@/pages/JoinByLink';
 
 const queryClient = new QueryClient({
@@ -30,6 +31,7 @@ export default function App() {
               <Route path="/invitees" element={<InviteesPage />} />
               <Route path="/routes" element={<RoutePlannerPage />} />
               <Route path="/timeline" element={<TimelineBuilderPage />} />
+              <Route path="/vendors" element={<VendorsPage />} />
               <Route path="/team" element={<MembersPage />} />
             </Route>
           </Routes>
