@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useUndoDelete } from '@/hooks/useUndoDelete';
+import { UndoToast } from '@/components/ui/UndoToast';
 import type { VendorAttachment } from '@/types';
 import { Upload, FileText, Image as ImageIcon, Trash2, X, Download, Eye } from 'lucide-react';
 
@@ -31,7 +32,7 @@ export function FileUpload({ attachments, onUpload, onDelete, getSignedUrl, uplo
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewType, setPreviewType] = useState<string | null>(null);
   const [previewName, setPreviewName] = useState('');
-  const [deleteTarget, setDeleteTarget] = useState<VendorAttachment | null>(null);
+  const { pending: undoPending, scheduleDelete, undo, dismiss, undoWindowMs, hiddenKeys } = useUndoDelete();
 
   const handleFiles = (files: FileList | null) => {
     if (!files) return;
@@ -72,7 +73,7 @@ export function FileUpload({ attachments, onUpload, onDelete, getSignedUrl, uplo
 
       {attachments.length > 0 && (
         <div className="space-y-2">
-          {attachments.map((att) => (
+          {attachments.filter((att) => !hiddenKeys.has(`file:${att.id}`)).map((att) => (
             <div
               key={att.id}
               className="flex items-center gap-3 p-3 rounded-sm bg-blush-50 hover:bg-blush-100 transition-colors group"
@@ -107,7 +108,7 @@ export function FileUpload({ attachments, onUpload, onDelete, getSignedUrl, uplo
                   <Download size={14} />
                 </button>
                 <button
-                  onClick={() => setDeleteTarget(att)}
+                  onClick={() => scheduleDelete(att.file_name, () => onDelete(att), `file:${att.id}`)}
                   className="p-1.5 rounded-full hover:bg-red-50 text-warm-400 hover:text-red-500 cursor-pointer transition-colors"
                   title="Delete"
                 >
@@ -159,17 +160,7 @@ export function FileUpload({ attachments, onUpload, onDelete, getSignedUrl, uplo
         </div>
       )}
 
-      <ConfirmDialog
-        open={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        onConfirm={() => {
-          if (deleteTarget) onDelete(deleteTarget);
-          setDeleteTarget(null);
-        }}
-        title="Delete File"
-        message={`Delete "${deleteTarget?.file_name}"? This cannot be undone.`}
-        confirmLabel="Delete"
-      />
+      <UndoToast pending={undoPending} onUndo={undo} onDismiss={dismiss} undoWindowMs={undoWindowMs} />
     </div>
   );
 }

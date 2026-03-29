@@ -27,6 +27,7 @@ import {
   Pencil,
   Save,
   Link,
+  Upload,
 } from 'lucide-react';
 
 interface MemberRow {
@@ -71,6 +72,12 @@ export function MembersPage() {
   const [spaceDate, setSpaceDate] = useState('');
   const [spaceBudget, setSpaceBudget] = useState('');
   const [savingSpace, setSavingSpace] = useState(false);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+
+  const existingBannerUrl = wedding?.banner_path
+    ? supabase.storage.from('wedding-banners').getPublicUrl(wedding.banner_path).data.publicUrl
+    : null;
 
   const isOwner = wedding?.user_id === user?.id;
   const currentMember = members.find((m) => m.user_id === user?.id);
@@ -246,6 +253,67 @@ export function MembersPage() {
                 placeholder="e.g., 500000"
               />
             </div>
+            <div>
+              <p className="text-sm font-semibold text-warm-600 pl-1 mb-1.5">Couple Photo (Viewer Banner)</p>
+              {(bannerPreview || existingBannerUrl) ? (
+                <div className="relative rounded-card overflow-hidden border border-blush-200 bg-blush-50">
+                  <img
+                    src={bannerPreview || existingBannerUrl || ''}
+                    alt="Banner"
+                    className="w-full h-40 object-contain"
+                  />
+                  <div className="absolute top-2 right-2 flex gap-1">
+                    <label className="p-1.5 bg-white/80 rounded-full hover:bg-white cursor-pointer text-warm-500">
+                      <Pencil size={12} />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setBannerFile(file);
+                            setBannerPreview(URL.createObjectURL(file));
+                          }
+                        }}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (wedding?.banner_path) {
+                          await supabase.storage.from('wedding-banners').remove([wedding.banner_path]);
+                          await updateWedding({ banner_path: null });
+                        }
+                        setBannerFile(null);
+                        setBannerPreview(null);
+                      }}
+                      className="p-1.5 bg-white/80 rounded-full hover:bg-white cursor-pointer text-red-400 hover:text-red-600"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <label className="block border-2 border-dashed border-blush-200 rounded-card p-4 text-center cursor-pointer hover:bg-blush-50 transition-colors">
+                  <Upload size={20} className="mx-auto text-blush-300 mb-1" />
+                  <p className="text-xs text-warm-400">Upload couple photo</p>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setBannerFile(file);
+                        setBannerPreview(URL.createObjectURL(file));
+                      }
+                    }}
+                  />
+                </label>
+              )}
+            </div>
+
             <div className="flex gap-2">
               <Button
                 size="sm"
@@ -254,11 +322,26 @@ export function MembersPage() {
                 onClick={async () => {
                   if (!spaceName.trim()) return;
                   setSavingSpace(true);
+
+                  let bannerPath = wedding?.banner_path ?? null;
+                  if (bannerFile && wedding?.id) {
+                    // Delete old banner if exists
+                    if (wedding.banner_path) {
+                      await supabase.storage.from('wedding-banners').remove([wedding.banner_path]);
+                    }
+                    const path = `${wedding.id}/${Date.now()}_${bannerFile.name}`;
+                    const { error: upErr } = await supabase.storage.from('wedding-banners').upload(path, bannerFile);
+                    if (!upErr) bannerPath = path;
+                  }
+
                   await updateWedding({
                     name: spaceName.trim(),
                     wedding_date: spaceDate || null,
                     total_budget: spaceBudget ? parseFloat(spaceBudget) : 0,
+                    banner_path: bannerPath,
                   });
+                  setBannerFile(null);
+                  setBannerPreview(null);
                   setSavingSpace(false);
                   setEditingSpace(false);
                 }}

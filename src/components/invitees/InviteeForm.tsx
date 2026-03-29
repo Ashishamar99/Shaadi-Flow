@@ -449,44 +449,36 @@ export function InviteeForm({
           />
         </div>
 
-        <div className="space-y-2">
-          <p className="text-sm font-semibold text-warm-600 pl-1">Attending</p>
-          <div className="flex items-center gap-5">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={halfAndHalf || attendReception}
-                disabled={halfAndHalf}
-                onChange={(e) => setAttendReception(e.target.checked)}
-                className="w-4 h-4 accent-blush-400 cursor-pointer disabled:opacity-50"
-              />
-              <span className={`text-sm ${halfAndHalf ? 'text-warm-400' : 'text-warm-600'}`}>Reception</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={halfAndHalf || attendMuhurtham}
-                disabled={halfAndHalf}
-                onChange={(e) => setAttendMuhurtham(e.target.checked)}
-                className="w-4 h-4 accent-blush-400 cursor-pointer disabled:opacity-50"
-              />
-              <span className={`text-sm ${halfAndHalf ? 'text-warm-400' : 'text-warm-600'}`}>Muhurtham</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={halfAndHalf}
-                onChange={(e) => setHalfAndHalf(e.target.checked)}
-                className="w-4 h-4 accent-amber-400 cursor-pointer"
-              />
-              <span className="text-sm text-warm-600">Half & Half</span>
-            </label>
-          </div>
-          {halfAndHalf && (
-            <p className="text-xs text-warm-300 pl-1">
-              Half the group attends Reception, half attends Muhurtham
-            </p>
-          )}
+        <div className="flex items-center gap-6">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={halfAndHalf || attendReception}
+              disabled={halfAndHalf}
+              onChange={(e) => setAttendReception(e.target.checked)}
+              className="w-4 h-4 accent-blush-400 cursor-pointer disabled:opacity-50"
+            />
+            <span className={`text-sm ${halfAndHalf ? 'text-warm-400' : 'text-warm-600'}`}>Reception</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={halfAndHalf || attendMuhurtham}
+              disabled={halfAndHalf}
+              onChange={(e) => setAttendMuhurtham(e.target.checked)}
+              className="w-4 h-4 accent-blush-400 cursor-pointer disabled:opacity-50"
+            />
+            <span className={`text-sm ${halfAndHalf ? 'text-warm-400' : 'text-warm-600'}`}>Muhurtham</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={halfAndHalf}
+              onChange={(e) => setHalfAndHalf(e.target.checked)}
+              className="w-4 h-4 accent-amber-400 cursor-pointer"
+            />
+            <span className="text-sm text-warm-600">Half & Half</span>
+          </label>
         </div>
 
         <TagInput

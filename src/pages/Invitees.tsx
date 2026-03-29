@@ -103,13 +103,38 @@ export function InviteesPage() {
 
     if (search) {
       const q = search.toLowerCase();
+      const directMatches = new Set<string>();
+      const matchedFamilyIds = new Set<string>();
+
+      const fuzzyMatch = (text: string | null | undefined, query: string): boolean => {
+        if (!text) return false;
+        const t = text.toLowerCase();
+        if (t.includes(query)) return true;
+        let qi = 0;
+        for (let i = 0; i < t.length && qi < query.length; i++) {
+          if (t[i] === query[qi]) qi++;
+        }
+        return qi === query.length;
+      };
+
+      result.forEach((inv) => {
+        const eff = getEffective(inv);
+        const matches =
+          fuzzyMatch(inv.name, q) ||
+          fuzzyMatch(inv.address, q) ||
+          fuzzyMatch(inv.phone, q) ||
+          fuzzyMatch(inv.notes, q) ||
+          fuzzyMatch(eff.address, q) ||
+          fuzzyMatch(eff.notes, q) ||
+          eff.tags?.some((t) => fuzzyMatch(t, q));
+        if (matches) {
+          directMatches.add(inv.id);
+          if (inv.family_id) matchedFamilyIds.add(inv.family_id);
+        }
+      });
+
       result = result.filter(
-        (inv) =>
-          inv.name.toLowerCase().includes(q) ||
-          inv.address?.toLowerCase().includes(q) ||
-          inv.phone?.includes(q) ||
-          getEffective(inv).address?.toLowerCase().includes(q) ||
-          getEffective(inv).tags?.some((t) => t.toLowerCase().includes(q)),
+        (inv) => directMatches.has(inv.id) || (inv.family_id && matchedFamilyIds.has(inv.family_id)),
       );
     }
     if (filterRsvp) {
@@ -143,10 +168,18 @@ export function InviteesPage() {
       });
     }
 
+    const getSortName = (inv: Invitee) => {
+      if (inv.family_id && !inv.is_family_head) {
+        const head = familyHeadMap.get(inv.family_id);
+        return head ? head.name : inv.name;
+      }
+      return inv.name;
+    };
+
     result = [...result].sort((a, b) => {
       switch (sortBy) {
-        case 'az': return a.name.localeCompare(b.name);
-        case 'za': return b.name.localeCompare(a.name);
+        case 'az': return getSortName(a).localeCompare(getSortName(b));
+        case 'za': return getSortName(b).localeCompare(getSortName(a));
         case 'oldest': return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
         default: return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       }

@@ -61,39 +61,34 @@ export function InviteeTable({
   const rows = useMemo(() => {
     const result: DisplayRow[] = [];
     const familyMap = new Map<string, Invitee[]>();
-    const solos: Invitee[] = [];
 
     for (const inv of invitees) {
       if (inv.family_id) {
         const group = familyMap.get(inv.family_id) || [];
         group.push(inv);
         familyMap.set(inv.family_id, group);
-      } else {
-        solos.push(inv);
       }
     }
 
-    // Process families
     const processedFamilies = new Set<string>();
+
     for (const inv of invitees) {
-      if (inv.family_id && !processedFamilies.has(inv.family_id)) {
+      if (inv.family_id) {
+        if (processedFamilies.has(inv.family_id)) continue;
         processedFamilies.add(inv.family_id);
+
         const group = familyMap.get(inv.family_id)!;
         const head = group.find((m) => m.is_family_head) || group[0];
         const members = group.filter((m) => m.id !== head.id);
-        const namedCount = group.length;
-        const extraCount = head.extra_members || 0;
-        const headcount = namedCount + extraCount;
-
-        const allVisited = group.every((m) => m.visited);
+        const headcount = group.length + (head.extra_members || 0);
 
         result.push({
           type: 'family-head',
           invitee: head,
           familyId: inv.family_id,
           headcount,
-          memberCount: members.length + extraCount,
-          allVisited,
+          memberCount: members.length + (head.extra_members || 0),
+          allVisited: group.every((m) => m.visited),
         });
 
         if (expandedFamilies.has(inv.family_id)) {
@@ -108,22 +103,17 @@ export function InviteeTable({
             });
           }
         }
-      } else if (!inv.family_id) {
-        // solo entries are handled separately to maintain order
+      } else {
+        const totalPeople = 1 + (inv.extra_members || 0);
+        result.push({
+          type: 'solo',
+          invitee: inv,
+          familyId: null,
+          headcount: totalPeople,
+          memberCount: inv.extra_members || 0,
+          allVisited: inv.visited,
+        });
       }
-    }
-
-    // Add solos (including RSVP entries with extra_members)
-    for (const inv of solos) {
-      const totalPeople = 1 + (inv.extra_members || 0);
-      result.push({
-        type: 'solo',
-        invitee: inv,
-        familyId: null,
-        headcount: totalPeople,
-        memberCount: inv.extra_members || 0,
-        allVisited: inv.visited,
-      });
     }
 
     return result;
@@ -150,7 +140,7 @@ export function InviteeTable({
               <th className="text-left px-4 py-3 text-xs font-semibold text-warm-400 uppercase tracking-wider">
                 RSVP
               </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-warm-400 uppercase tracking-wider hidden lg:table-cell">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-warm-400 uppercase tracking-wider hidden md:table-cell">
                 Priority
               </th>
               {showTags && (
@@ -158,7 +148,7 @@ export function InviteeTable({
                   Tags
                 </th>
               )}
-              <th className="text-left px-4 py-3 text-xs font-semibold text-warm-400 uppercase tracking-wider hidden xl:table-cell">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-warm-400 uppercase tracking-wider hidden md:table-cell">
                 Events
               </th>
               <th className="text-right px-4 py-3 text-xs font-semibold text-warm-400 uppercase tracking-wider">
@@ -274,7 +264,7 @@ export function InviteeTable({
                   <td className="px-4 py-3">
                     <RsvpBadge status={inv.rsvp_status} />
                   </td>
-                  <td className="px-4 py-3 hidden lg:table-cell">
+                  <td className="px-4 py-3 hidden md:table-cell">
                     <PriorityBadge priority={inv.priority} />
                   </td>
                   {showTags && (
@@ -282,7 +272,7 @@ export function InviteeTable({
                       {!isFamilyMember && inv.tags && inv.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1">
                           {inv.tags.map((tag) => (
-                            <span key={tag} className="text-[10px] bg-warm-100 text-warm-500 px-1.5 py-0.5 rounded-pill">
+                            <span key={tag} className="text-[10px] bg-warm-200 text-warm-700 px-1.5 py-0.5 rounded-pill">
                               {tag}
                             </span>
                           ))}
@@ -290,7 +280,7 @@ export function InviteeTable({
                       )}
                     </td>
                   )}
-                  <td className="px-4 py-3 hidden xl:table-cell">
+                  <td className="px-4 py-3 hidden md:table-cell">
                     {!isFamilyMember && (
                       <div className="flex gap-1">
                         {inv.attending_muhurtham && (

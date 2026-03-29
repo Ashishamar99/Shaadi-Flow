@@ -4,6 +4,7 @@ export interface Wedding {
   name: string;
   wedding_date: string | null;
   total_budget: number;
+  banner_path: string | null;
   created_at: string;
 }
 

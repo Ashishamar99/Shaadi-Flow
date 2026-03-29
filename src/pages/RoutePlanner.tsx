@@ -43,6 +43,7 @@ export function RoutePlannerPage() {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
+  const [showAddressList, setShowAddressList] = useState(false);
 
   const [days, setDays] = useState(3);
   const [startAddress, setStartAddress] = useState('BTM, 7th Main, 12th Cross');
@@ -398,9 +399,14 @@ export function RoutePlannerPage() {
         </div>
         <div className="flex items-center gap-2">
           {locatedInvitees.length > 0 && (
-            <Badge variant="mint">
-              {locatedInvitees.length} unvisited
-            </Badge>
+            <button
+              onClick={() => setShowAddressList(!showAddressList)}
+              className="cursor-pointer"
+            >
+              <Badge variant="mint">
+                {locatedInvitees.length} unvisited
+              </Badge>
+            </button>
           )}
           {routes.length > 0 && (
             <Button size="sm" variant="ghost" icon={<Save size={14} />} onClick={() => setShowSaveInput(true)}>
@@ -414,6 +420,40 @@ export function RoutePlannerPage() {
           )}
         </div>
       </div>
+
+      {showAddressList && locatedInvitees.length > 0 && (
+        <Card padding="sm">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-semibold text-warm-600">
+              {locatedInvitees.length} guests in route calculation
+            </p>
+            <button
+              onClick={() => setShowAddressList(false)}
+              className="text-xs text-warm-400 hover:text-warm-600 cursor-pointer"
+            >
+              Close
+            </button>
+          </div>
+          <div className="max-h-[250px] overflow-y-auto space-y-1">
+            {locatedInvitees.map((inv) => (
+              <div key={inv.id} className="flex items-center gap-2 py-1.5 px-1 rounded-sm hover:bg-blush-50 transition-colors text-xs">
+                <button
+                  onClick={() => handleToggleVisited(inv)}
+                  className="cursor-pointer shrink-0"
+                >
+                  {inv.visited ? (
+                    <CheckCircle size={16} className="text-blue-500" />
+                  ) : (
+                    <Circle size={16} className="text-warm-300" />
+                  )}
+                </button>
+                <span className="font-medium text-warm-600 min-w-[80px] truncate">{inv.name}</span>
+                <span className="text-warm-400 truncate flex-1">{inv.address || 'Map link only'}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {unlocatedInvitees.length > 0 && (
         <Card padding="sm">

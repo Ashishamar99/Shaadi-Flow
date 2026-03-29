@@ -37,11 +37,13 @@ async function shareScheduleAsImage(weddingName: string, weddingId: string) {
   const file = new File([blob], `${weddingName}-schedule.png`, { type: 'image/png' });
 
   const joinLink = `${window.location.origin}/join/${weddingId}`;
-  const message = `You're invited to ${weddingName}! 💍✨\n\nCheck out the schedule and RSVP here:\n${joinLink}\n\nWe'd love to have you celebrate with us! 🎊`;
+  const hasWedding = weddingName.toLowerCase().includes('wedding');
+  const eventTitle = hasWedding ? weddingName : `the wedding of ${weddingName}`;
+  const message = `You're invited to ${eventTitle}! 💍✨\n\nCheck out the schedule and RSVP here:\n${joinLink}\n\nWe'd love to have you celebrate with us! 🎊`;
 
   if (navigator.share && navigator.canShare?.({ files: [file] })) {
     await navigator.share({
-      title: `${weddingName} - You're Invited!`,
+      title: hasWedding ? weddingName : `${weddingName}'s Wedding`,
       text: message,
       files: [file],
     });
@@ -441,6 +443,9 @@ export function ViewerPage({ wedding, isPreview, onExitPreview }: ViewerPageProp
   const { dark, toggle } = useTheme();
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [guestCount, setGuestCount] = useState(10);
+  const bannerUrl = wedding.banner_path
+    ? supabase.storage.from('wedding-banners').getPublicUrl(wedding.banner_path).data.publicUrl
+    : null;
 
   useEffect(() => {
     async function load() {
@@ -503,10 +508,22 @@ export function ViewerPage({ wedding, isPreview, onExitPreview }: ViewerPageProp
       )}
 
       <div className="max-w-3xl mx-auto px-4 pb-12 space-y-6">
-        <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blush-200 rounded-full mb-4">
-            <Heart size={28} className="text-blush-500" />
+        {bannerUrl && (
+          <div className="rounded-card overflow-hidden shadow-card bg-blush-50">
+            <img
+              src={bannerUrl}
+              alt={wedding.name}
+              className="w-full max-h-72 object-contain"
+            />
           </div>
+        )}
+
+        <div className="text-center">
+          {!wedding.banner_path && (
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-blush-200 rounded-full mb-4">
+              <Heart size={28} className="text-blush-500" />
+            </div>
+          )}
           <h1 className="text-3xl font-bold text-warm-700">{wedding.name}</h1>
           {daysUntil !== null && daysUntil > 0 && (
             <p className="text-warm-400 mt-2">
